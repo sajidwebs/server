@@ -1,7 +1,11 @@
 const { Sequelize } = require('sequelize');
 const dotenv = require('dotenv');
 
-dotenv.config({ path: '../.envserver' });
+// Try .env first, then .envserver
+dotenv.config({ path: './.env' });
+if (!process.env.DB_PASSWORD) {
+  dotenv.config({ path: './.envserver' });
+}
 
 // Determine if we should use SSL based on the host
 // Render PostgreSQL requires SSL, localhost typically doesn't

@@ -112,6 +112,12 @@ app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/business-rules', require('./routes/business-rules.routes'));
 
+// Master Data Routes (Doctor Class, Category, Specialty, Qualification)
+app.use('/api/master', require('./routes/masterData.js'));
+
+// Approval Workflow Routes
+app.use('/api/approvals', require('./routes/approvals.js'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

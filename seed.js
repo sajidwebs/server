@@ -1,12 +1,17 @@
-const { User, Doctor, Chemist, Activity, Sale, DayCall, Projection, Business, Notification, Territory, Product, Headquarter } = require('./models');
+const { User, Doctor, Chemist, Activity, Sale, DayCall, Projection, Business, Notification, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification } = require('./models');
 const { hashPassword } = require('./utils/password');
 const sequelize = require('./config/database');
+const dotenv = require('dotenv');
+dotenv.config({ path: './.env' });
 
 async function seedDatabase() {
   try {
     console.log('🌱 Starting database seeding...');
 
-    // Clear existing data
+    // Sync all models to create tables
+    console.log('🗄️ Creating tables...');
+    await sequelize.sync({ force: true });
+    console.log('✅ Tables created successfully!');
     console.log('🧹 Clearing existing data...');
     await Notification.destroy({ where: {} });
     await Business.destroy({ where: {} });
@@ -20,6 +25,12 @@ async function seedDatabase() {
     await Headquarter.destroy({ where: {} });
     await Product.destroy({ where: {} });
     await User.destroy({ where: {} });
+    
+    // Clear new master data tables
+    await DoctorQualification.destroy({ where: {} });
+    await DoctorSpecialty.destroy({ where: {} });
+    await DoctorCategory.destroy({ where: {} });
+    await DoctorClass.destroy({ where: {} });
 
     // Create admin user
     console.log('👤 Creating admin user...');
@@ -78,58 +89,173 @@ async function seedDatabase() {
       }
     ]);
 
+    // Seed Doctor Classes (Dynamic Data) - MUST BE BEFORE DOCTORS
+    console.log('🏷️ Creating doctor classes...');
+    const doctorClasses = await DoctorClass.bulkCreate([
+      { category_name: 'Regular Prescriber', short_name: 'RP', status: 'active', created_by: adminUser.id },
+      { category_name: 'Irregular Prescriber', short_name: 'IRP', status: 'active', created_by: adminUser.id },
+      { category_name: 'High Value Prescriber', short_name: 'HVP', status: 'active', created_by: adminUser.id },
+      { category_name: 'Low Value Prescriber', short_name: 'LVP', status: 'active', created_by: adminUser.id },
+      { category_name: 'Occasional Prescriber', short_name: 'OP', status: 'active', created_by: adminUser.id }
+    ]);
+
+    // Seed Doctor Categories (Variable Data) - MUST BE BEFORE DOCTORS
+    console.log('📋 Creating doctor categories...');
+    const doctorCategories = await DoctorCategory.bulkCreate([
+      { category_name: 'Core Doctor', short_name: 'CORE', status: 'active', created_by: adminUser.id },
+      { category_name: 'Category A', short_name: 'A', status: 'active', created_by: adminUser.id },
+      { category_name: 'Category B', short_name: 'B', status: 'active', created_by: adminUser.id },
+      { category_name: 'Category C', short_name: 'C', status: 'active', created_by: adminUser.id },
+      { category_name: 'Sampark Doctor', short_name: 'SAMP', status: 'active', created_by: adminUser.id },
+      { category_name: 'Group B Doctor', short_name: 'GRP-B', status: 'active', created_by: adminUser.id }
+    ]);
+
+    // Seed Doctor Specialties (Constant Data) - MUST BE BEFORE DOCTORS
+    console.log('🩺 Creating doctor specialties...');
+    const doctorSpecialties = await DoctorSpecialty.bulkCreate([
+      { specialty_name: 'General Physician', short_name: 'GP', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Cardiologist', short_name: 'CARD', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Neurologist', short_name: 'NEURO', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Orthopedic', short_name: 'ORTH', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'General Surgeon', short_name: 'GS', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Gynecologist', short_name: 'GYNO', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Pediatrician', short_name: 'PED', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Dermatologist', short_name: 'DERM', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Gastroenterologist', short_name: 'GI', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Pulmonologist', short_name: 'PULMO', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Nephrologist', short_name: 'NEPHO', status: 'active', created_by: adminUser.id },
+      { specialty_name: 'Urologist', short_name: 'URO', status: 'active', created_by: adminUser.id }
+    ]);
+
+    // Seed Doctor Qualifications (Constant Data) - MUST BE BEFORE DOCTORS
+    console.log('🎓 Creating doctor qualifications...');
+    const doctorQualifications = await DoctorQualification.bulkCreate([
+      { qualification_name: 'MBBS', short_name: 'MBBS', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Doctor of Medicine', short_name: 'MD', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Master of Surgery', short_name: 'MS', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Diplomate of National Board', short_name: 'DNB', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Doctor of Philosophy', short_name: 'PhD', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Master of Chirurgiae', short_name: 'MCh', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Bachelor of Ayurvedic Medicine and Surgery', short_name: 'BAMS', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Master in Orthopedic Surgery', short_name: 'MS, Ortho', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Doctor in Medicine', short_name: 'DM', status: 'active', created_by: adminUser.id },
+      { qualification_name: 'Post Graduate Diploma in Clinical Cardiology', short_name: 'PGDCC', status: 'active', created_by: adminUser.id }
+    ]);
+
     // Create doctors
     console.log('👨‍⚕️ Creating doctors...');
     const doctors = await Doctor.bulkCreate([
       {
         firstName: 'Dr. Subrat',
         lastName: 'Mohanty',
+        specialty_id: 2, // Cardiologist
+        category_id: 1, // Core Doctor
+        qualification_id: 2, // MD
         specialty: 'Cardiologist',
         location: 'Bhubaneswar, Odisha',
         address: 'Cardiac Care Center, Bhubaneswar',
         phone: '+91-9876543210',
         email: 'subrat.mohanty@email.com',
-        isActive: true
+        isActive: true,
+        approval_status: 'approved'
       },
       {
         firstName: 'Dr. Ananya',
         lastName: 'Das',
+        specialty_id: 3, // Neurologist
+        category_id: 1, // Core Doctor
+        qualification_id: 2, // MD
         specialty: 'Neurologist',
         location: 'Cuttack, Odisha',
         address: 'Neuro Institute, Cuttack',
         phone: '+91-9876543211',
         email: 'ananya.das@email.com',
-        isActive: true
+        isActive: true,
+        approval_status: 'approved'
       },
       {
         firstName: 'Dr. Ramesh',
         lastName: 'Behera',
+        specialty_id: 4, // Orthopedic
+        category_id: 2, // Category A
+        qualification_id: 8, // MS, Ortho
         specialty: 'Orthopedic',
         location: 'Sambalpur, Odisha',
         address: 'Bone & Joint Hospital, Sambalpur',
         phone: '+91-9876543212',
         email: 'ramesh.behera@email.com',
-        isActive: true
+        isActive: true,
+        approval_status: 'approved'
       },
       {
         firstName: 'Dr. Pratibha',
         lastName: 'Patnaik',
+        specialty_id: 7, // Pediatrician
+        category_id: 2, // Category A
+        qualification_id: 2, // MD
         specialty: 'Pediatrician',
         location: 'Puri, Odisha',
         address: 'Children Hospital, Puri',
         phone: '+91-9876543213',
         email: 'pratibha.patnaik@email.com',
-        isActive: true
+        isActive: true,
+        approval_status: 'approved'
       },
       {
         firstName: 'Dr. Ashok',
         lastName: 'Sahu',
+        specialty_id: 1, // General Physician
+        category_id: 3, // Category B
+        qualification_id: 1, // MBBS
         specialty: 'General Physician',
         location: 'Rourkela, Odisha',
         address: 'City Clinic, Rourkela',
         phone: '+91-9876543214',
         email: 'ashok.sahu@email.com',
-        isActive: true
+        isActive: true,
+        approval_status: 'approved'
+      },
+      {
+        firstName: 'Dr. Priya',
+        lastName: 'Nayak',
+        specialty_id: 6, // Gynecologist
+        category_id: 1, // Core Doctor
+        qualification_id: 3, // MS
+        specialty: 'Gynecologist',
+        location: 'Bhubaneswar, Odisha',
+        address: 'Women Care Hospital, Bhubaneswar',
+        phone: '+91-9876543215',
+        email: 'priya.nayak@email.com',
+        isActive: true,
+        approval_status: 'approved'
+      },
+      {
+        firstName: 'Dr. Biswajit',
+        lastName: 'Dash',
+        specialty_id: 8, // Dermatologist
+        category_id: 4, // Category C
+        qualification_id: 2, // MD
+        specialty: 'Dermatologist',
+        location: 'Cuttack, Odisha',
+        address: 'Skin Care Clinic, Cuttack',
+        phone: '+91-9876543216',
+        email: 'biswajit.dash@email.com',
+        isActive: true,
+        approval_status: 'approved'
+      },
+      {
+        firstName: 'Dr. Sanghamitra',
+        lastName: 'Panda',
+        specialty_id: 9, // Gastroenterologist
+        category_id: 2, // Category A
+        qualification_id: 9, // DM
+        specialty: 'Gastroenterologist',
+        location: 'Bhubaneswar, Odisha',
+        address: 'GI Center, Bhubaneswar',
+        phone: '+91-9876543217',
+        email: 'sanghamitra.panda@email.com',
+        isActive: true,
+        approval_status: 'approved'
       }
     ]);
 
@@ -548,6 +674,12 @@ async function seedDatabase() {
     console.log(`   👨‍⚕️ Doctors: ${doctors.length}`);
     console.log(`   🏥 Chemists: ${chemists.length}`);
     console.log(`   🗺️ Territories: 5`);
+    console.log(`   🏢 Headquarters: ${headquarters.length}`);
+    console.log(`   📦 Products: ${products.length}`);
+    console.log(`   🏷️ Doctor Classes: ${doctorClasses.length}`);
+    console.log(`   📋 Doctor Categories: ${doctorCategories.length}`);
+    console.log(`   🩺 Doctor Specialties: ${doctorSpecialties.length}`);
+    console.log(`   🎓 Doctor Qualifications: ${doctorQualifications.length}`);
     console.log(`   💊 Products: 5 (Charak Pharma products)`);
     console.log(`   🏢 Headquarters: 1`);
     console.log(`   📋 Activities: ${activities.length}`);

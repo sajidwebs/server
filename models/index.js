@@ -11,7 +11,15 @@ const Territory = require('./Territory');
 const Product = require('./Product');
 const Headquarter = require('./Headquarter');
 
-// Define relationships
+// New Master Data Models
+const DoctorClass = require('./DoctorClass');
+const DoctorCategory = require('./DoctorCategory');
+const DoctorSpecialty = require('./DoctorSpecialty');
+const DoctorQualification = require('./DoctorQualification');
+const ApprovalQueue = require('./ApprovalQueue');
+const ApprovalHistory = require('./ApprovalHistory');
+
+// Define relationships - Existing
 User.hasMany(Activity, {
   foreignKey: 'userId',
   as: 'activities'
@@ -92,6 +100,84 @@ Sale.belongsTo(Chemist, {
   as: 'chemist'
 });
 
+// New Relationships - Doctor Master Data
+
+// DoctorClass associations
+DoctorClass.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+DoctorClass.belongsTo(User, {
+  foreignKey: 'updated_by',
+  as: 'updater'
+});
+
+// DoctorCategory associations
+DoctorCategory.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+DoctorCategory.belongsTo(User, {
+  foreignKey: 'updated_by',
+  as: 'updater'
+});
+
+// DoctorSpecialty associations
+DoctorSpecialty.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+DoctorSpecialty.belongsTo(User, {
+  foreignKey: 'updated_by',
+  as: 'updater'
+});
+
+// DoctorQualification associations
+DoctorQualification.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+DoctorQualification.belongsTo(User, {
+  foreignKey: 'updated_by',
+  as: 'updater'
+});
+
+// Doctor associations with master data
+Doctor.belongsTo(DoctorSpecialty, {
+  foreignKey: 'specialty_id',
+  as: 'specialtyData'
+});
+
+Doctor.belongsTo(DoctorCategory, {
+  foreignKey: 'category_id',
+  as: 'categoryData'
+});
+
+Doctor.belongsTo(DoctorQualification, {
+  foreignKey: 'qualification_id',
+  as: 'qualificationData'
+});
+
+// Approval Queue relationships
+ApprovalQueue.belongsTo(User, {
+  foreignKey: 'submitted_by',
+  as: 'submitter'
+});
+
+ApprovalHistory.belongsTo(ApprovalQueue, {
+  foreignKey: 'approval_queue_id',
+  as: 'approval'
+});
+
+ApprovalHistory.belongsTo(User, {
+  foreignKey: 'approver_id',
+  as: 'approver'
+});
+
 module.exports = {
   User,
   Doctor,
@@ -104,5 +190,12 @@ module.exports = {
   Notification,
   Territory,
   Product,
-  Headquarter
+  Headquarter,
+  // New Master Data Models
+  DoctorClass,
+  DoctorCategory,
+  DoctorSpecialty,
+  DoctorQualification,
+  ApprovalQueue,
+  ApprovalHistory
 };
