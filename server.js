@@ -6,10 +6,13 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: '.envserver' });
 
 // Create Express app
 const app = express();
+
+// Trust proxy for render.com (required for rate limiting to work correctly behind reverse proxy)
+app.set('trust proxy', 1);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -20,7 +23,7 @@ const limiter = rateLimit({
 
 // Apply middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.1.3:3000', 'http://192.168.1.3:5000', 'http://127.0.0.1:3001',  'http://192.168.0.3:5173', 'http://192.168.1.3:5173', 'http://192.168.1.3:3001', 'http://localhost:5173', 'http://192.168.1.3:8081'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.1.8:3000', 'http://192.168.1.8:5000', 'http://127.0.0.1:3001',  'http://192.168.0.3:5173', 'http://192.168.1.8:5173', 'http://192.168.1.8:3001', 'http://localhost:5173', 'http://192.168.1.8:8081', 'https://serverapp-a8wy.onrender.com', 'https://pamsforce-admin.onrender.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -43,22 +46,39 @@ app.use(helmet());
 const db = require('./config/database');
 require('./models'); // Import all models to register them with Sequelize
 
-// Test database connection
+// Test database connection and then sync, then start server
 db.authenticate()
   .then(() => {
     console.log('Database connection has been established successfully.');
+    // Skip auto-sync to keep server running - tables already exist
+    // return db.sync({ force: true });
+  })
+  .then(async () => {
+    console.log('Database ready.');
+    
+    // Start server after sync and seed
+    const PORT = process.env.PORT || 5000;
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`Access the API at http://localhost:${PORT}`);
+    });
+    
+    // Keep server running
+    server.on('error', (err) => {
+      console.error('Server error:', err);
+    });
+    
+    // Prevent process from exiting
+    process.on('SIGINT', () => {
+      console.log('\nShutting down gracefully...');
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
   })
   .catch(err => {
     console.error('Unable to connect to the database:', err);
-  });
-
-// Sync database models
-db.sync({ alter: true })
-  .then(() => {
-    console.log('Database synced successfully.');
-  })
-  .catch(err => {
-    console.error('Error syncing database:', err);
   });
 
 // Routes
@@ -92,6 +112,12 @@ app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/business-rules', require('./routes/business-rules.routes'));
 
+// Master Data Routes (Doctor Class, Category, Specialty, Qualification)
+app.use('/api/master', require('./routes/masterData.js'));
+
+// Approval Workflow Routes
+app.use('/api/approvals', require('./routes/approvals.js'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -106,12 +132,6 @@ app.use((req, res) => {
   res.status(404).json({ 
     message: 'Route not found' 
   });
-});
-
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
 });
 
 module.exports = app;
