@@ -27,20 +27,7 @@ const Headquarter = sequelize.define('Headquarter', {
     allowNull: false,
     defaultValue: 'Branch Office'
   },
-  address: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
-  },
-  city: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
-  },
+  // State or Union Territory - as per requirement
   state: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -48,20 +35,48 @@ const Headquarter = sequelize.define('Headquarter', {
       notEmpty: true
     }
   },
-  pincode: {
-    type: DataTypes.STRING(6),
+  // Type of state - State or Union Territory
+  stateType: {
+    type: DataTypes.ENUM('State', 'Union Territory'),
     allowNull: false,
-    validate: {
-      notEmpty: true,
-      len: [6, 6]
-    }
+    defaultValue: 'State'
   },
-  phone: {
+  // Zone - North, South, East, West, etc.
+  zone: {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
       notEmpty: true
     }
+  },
+  // Reason - Reason for the HQ creation or classification
+  reason: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // Sales region
+  region: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
+  },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  city: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  pincode: {
+    type: DataTypes.STRING(6),
+    allowNull: true
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   email: {
     type: DataTypes.STRING,
@@ -71,24 +86,7 @@ const Headquarter = sequelize.define('Headquarter', {
   },
   manager: {
     type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
-  },
-  region: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
-  },
-  zone: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
+    allowNull: true
   },
   territoryCount: {
     type: DataTypes.INTEGER,
@@ -107,6 +105,14 @@ const Headquarter = sequelize.define('Headquarter', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  createdBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   }
 }, {
   timestamps: true,

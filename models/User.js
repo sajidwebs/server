@@ -37,8 +37,40 @@ const User = sequelize.define('User', {
     }
   },
   role: {
-    type: DataTypes.ENUM('admin', 'user', 'manager', 'Field Representative', 'Area Manager', 'Regional Manager'),
+    type: DataTypes.ENUM('admin', 'user', 'manager', 'Field Representative', 'Area Manager', 'Regional Manager', 'Zonal Manager', 'National Manager'),
     defaultValue: 'user'
+  },
+  // Reference to Headquarter (HQ) - where the employee is allocated
+  hq_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'headquarters',
+      key: 'id'
+    }
+  },
+  // Reference to Territory (Patch/Route) - primary territory for the employee
+  territory_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'territories',
+      key: 'id'
+    }
+  },
+  // Reporting hierarchy
+  reportingTo: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  // Employee type: MR (Medical Representative), TBM, ABM, RBM, ZBM, NSM
+  employeeType: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   isActive: {
     type: DataTypes.BOOLEAN,

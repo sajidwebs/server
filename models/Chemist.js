@@ -33,9 +33,35 @@ const Chemist = sequelize.define('Chemist', {
       isEmail: true
     }
   },
+  // Reference to Headquarter (HQ)
+  hq_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'headquarters',
+      key: 'id'
+    }
+  },
+  // Reference to Territory (Patch/Route)
+  territory_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'territories',
+      key: 'id'
+    }
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  createdBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   }
 }, {
   timestamps: true,
