@@ -242,6 +242,199 @@ async function seedDatabase() {
     ]);
     console.log('✅ Created 7 strengths');
 
+    // Create Products
+    console.log('🛍️ Creating products...');
+    const products = await Product.bulkCreate([
+      // Primary Care Products
+      { 
+        unique_id: '00001',
+        name: 'Paracetamol 500', 
+        short_name: 'PCM500', 
+        code: 'PROD-00001',
+        division_id: divisions[0].id, 
+        brand_group_id: brandGroups[0].id,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[0].id, 
+        strength_id: strengths[6].id, 
+        pts: 40.00, ptr: 42.00, mrp: 45.00,
+        launch_date: '2024-01-01',
+        status: 'active'
+      },
+      { 
+        unique_id: '00002',
+        name: 'Paracetamol 650', 
+        short_name: 'PCM650', 
+        code: 'PROD-00002',
+        division_id: divisions[0].id, 
+        brand_group_id: brandGroups[0].id,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[0].id, 
+        strength_id: strengths[6].id, 
+        pts: 45.00, ptr: 48.00, mrp: 50.00,
+        launch_date: '2024-01-15',
+        status: 'active'
+      },
+      { 
+        unique_id: '00003',
+        name: 'Combiflam 400', 
+        short_name: 'CBF400', 
+        code: 'PROD-00003',
+        division_id: divisions[0].id, 
+        brand_group_id: brandGroups[1].id,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[0].id, 
+        strength_id: strengths[5].id, 
+        pts: 38.00, ptr: 40.00, mrp: 42.00,
+        launch_date: '2024-02-01',
+        status: 'active'
+      },
+      { 
+        unique_id: '00004',
+        name: 'Azithromycin 250', 
+        short_name: 'AZI250', 
+        code: 'PROD-00004',
+        division_id: divisions[0].id, 
+        brand_group_id: brandGroups[2].id,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[1].id, 
+        strength_id: strengths[4].id, 
+        pts: 85.00, ptr: 90.00, mrp: 95.00,
+        launch_date: '2024-02-15',
+        status: 'active'
+      },
+      // Cardiac Care Products
+      { 
+        unique_id: '00045',
+        name: 'CardioPlus 5', 
+        short_name: 'CP5', 
+        code: 'PROD-00045',
+        division_id: divisions[1].id, 
+        brand_group_id: null,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[1].id, 
+        strength_id: strengths[0].id, 
+        pts: 75.00, ptr: 80.00, mrp: 85.00,
+        launch_date: '2025-03-15',
+        status: 'active'
+      },
+      { 
+        unique_id: '00046',
+        name: 'CardioPlus 10', 
+        short_name: 'CP10', 
+        code: 'PROD-00046',
+        division_id: divisions[1].id, 
+        brand_group_id: null,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[1].id, 
+        strength_id: strengths[1].id, 
+        pts: 80.00, ptr: 85.00, mrp: 90.00,
+        launch_date: '2025-03-16',
+        status: 'active'
+      },
+      { 
+        unique_id: '00047',
+        name: 'CardioGuard Plus', 
+        short_name: 'CGP', 
+        code: 'PROD-00047',
+        division_id: divisions[1].id, 
+        brand_group_id: null,
+        category_id: productCategories[1].id, 
+        pack_size_id: packSizes[2].id, 
+        strength_id: strengths[2].id, 
+        pts: 95.00, ptr: 100.00, mrp: 110.00,
+        launch_date: '2025-04-01',
+        status: 'active'
+      },
+      // Gastro Products
+      { 
+        unique_id: '00089',
+        name: 'Metrogyl Plus', 
+        short_name: 'MTR', 
+        code: 'PROD-00089',
+        division_id: divisions[2].id, 
+        brand_group_id: brandGroups[3].id,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[2].id, 
+        strength_id: strengths[4].id, 
+        pts: 65.00, ptr: 70.00, mrp: 75.00,
+        launch_date: '2025-05-01',
+        status: 'active'
+      },
+      { 
+        unique_id: '00090',
+        name: 'Gastro Relief Gel', 
+        short_name: 'GRG', 
+        code: 'PROD-00090',
+        division_id: divisions[2].id, 
+        brand_group_id: null,
+        category_id: productCategories[4].id, 
+        pack_size_id: packSizes[3].id, 
+        strength_id: null, 
+        pts: 55.00, ptr: 60.00, mrp: 65.00,
+        launch_date: '2025-05-15',
+        status: 'active'
+      },
+      // Neuro Products
+      { 
+        unique_id: '00112',
+        name: 'Neurobion Complex', 
+        short_name: 'NBC', 
+        code: 'PROD-00112',
+        division_id: divisions[3].id, 
+        brand_group_id: brandGroups[4].id,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[0].id, 
+        strength_id: null, 
+        pts: 72.00, ptr: 75.00, mrp: 80.00,
+        launch_date: '2025-06-01',
+        status: 'active'
+      },
+      { 
+        unique_id: '00113',
+        name: 'Neurobion Forte', 
+        short_name: 'NBF', 
+        code: 'PROD-00113',
+        division_id: divisions[3].id, 
+        brand_group_id: brandGroups[4].id,
+        category_id: productCategories[2].id, 
+        pack_size_id: packSizes[1].id, 
+        strength_id: null, 
+        pts: 85.00, ptr: 90.00, mrp: 100.00,
+        launch_date: '2025-06-15',
+        status: 'active'
+      },
+      // Ortho Products
+      { 
+        unique_id: '00145',
+        name: 'OrthoCare Gel', 
+        short_name: 'OCG', 
+        code: 'PROD-00145',
+        division_id: divisions[4].id, 
+        brand_group_id: null,
+        category_id: productCategories[4].id, 
+        pack_size_id: packSizes[3].id, 
+        strength_id: null, 
+        pts: 105.00, ptr: 110.00, mrp: 120.00,
+        launch_date: '2025-06-22',
+        status: 'active'
+      },
+      { 
+        unique_id: '00146',
+        name: 'OrthoCare Plus', 
+        short_name: 'OCP', 
+        code: 'PROD-00146',
+        division_id: divisions[4].id, 
+        brand_group_id: null,
+        category_id: productCategories[0].id, 
+        pack_size_id: packSizes[0].id, 
+        strength_id: strengths[3].id, 
+        pts: 92.00, ptr: 97.00, mrp: 105.00,
+        launch_date: '2025-07-01',
+        status: 'active'
+      }
+    ]);
+    console.log(`✅ Created ${products.length} products`);
+
     // Create sample doctors for Odisha
     console.log('👨‍⚕️ Creating doctors (Odisha only)...');
     const doctors = await Doctor.bulkCreate([
@@ -275,6 +468,7 @@ async function seedDatabase() {
     console.log(`  • Pack Sizes: ${packSizes.length}`);
     console.log(`  • Brand Groups: ${brandGroups.length}`);
     console.log(`  • Strengths: ${strengths.length}`);
+    console.log(`  • Products: ${products.length}`);
 
   } catch (error) {
     console.error('\n❌ ERROR:', error.message);
