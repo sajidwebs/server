@@ -22,7 +22,19 @@ async function seedDatabase() {
       console.log('⚠️  Could not clear all tables (they may not exist yet)');
     }
 
-    // Create input_types table if it doesn't exist
+    // Drop existing input tables and recreate with all columns
+    console.log('📋 Recreating input tables with all columns...');
+    try {
+      await sequelize.query('DROP TABLE IF EXISTS input_master CASCADE');
+      await sequelize.query('DROP TABLE IF EXISTS input_classes CASCADE');
+      await sequelize.query('DROP TABLE IF EXISTS input_types CASCADE');
+      await sequelize.query('DROP TABLE IF EXISTS sample_master CASCADE');
+      console.log('✅ Dropped existing input tables');
+    } catch(e) {
+      console.log('⚠️  Could not drop tables:', e.message);
+    }
+
+    // Create input_types table
     console.log('📋 Creating input_types table...');
     try {
       await sequelize.query(`
@@ -32,6 +44,7 @@ async function seedDatabase() {
           short_name VARCHAR(10) NOT NULL UNIQUE,
           description TEXT,
           status VARCHAR(20) DEFAULT 'active',
+          created_by INTEGER REFERENCES users(id),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -41,7 +54,7 @@ async function seedDatabase() {
       console.log('⚠️  input_types table error:', e.message);
     }
 
-    // Create input_classes table if it doesn't exist
+    // Create input_classes table
     console.log('🏷️ Creating input_classes table...');
     try {
       await sequelize.query(`
@@ -51,6 +64,7 @@ async function seedDatabase() {
           short_name VARCHAR(10) NOT NULL UNIQUE,
           description TEXT,
           status VARCHAR(20) DEFAULT 'active',
+          created_by INTEGER REFERENCES users(id),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -60,7 +74,7 @@ async function seedDatabase() {
       console.log('⚠️  input_classes table error:', e.message);
     }
 
-    // Create input_master table if it doesn't exist
+    // Create input_master table
     console.log('📄 Creating input_master table...');
     try {
       await sequelize.query(`
@@ -72,6 +86,7 @@ async function seedDatabase() {
           input_class_id INTEGER REFERENCES input_classes(id),
           description TEXT,
           status VARCHAR(20) DEFAULT 'active',
+          created_by INTEGER REFERENCES users(id),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -81,19 +96,20 @@ async function seedDatabase() {
       console.log('⚠️  input_master table error:', e.message);
     }
 
-    // Create sample_master table if it doesn't exist
+    // Create sample_master table
     console.log('🎁 Creating sample_master table...');
     try {
       await sequelize.query(`
         CREATE TABLE IF NOT EXISTS sample_master (
           id SERIAL PRIMARY KEY,
-          product_id INTEGER NOT NULL REFERENCES products(id),
+          product_id INTEGER REFERENCES products(id),
           pack_size_id INTEGER REFERENCES pack_sizes(id),
           sample_name VARCHAR(255) NOT NULL,
           sample_qty DECIMAL(10,2) NOT NULL,
           unit VARCHAR(20) DEFAULT 'Tab',
           max_per_call INTEGER DEFAULT 5,
           status VARCHAR(20) DEFAULT 'active',
+          created_by INTEGER REFERENCES users(id),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -692,36 +708,36 @@ async function seedDatabase() {
     // ==================== INPUT TYPES ====================
     console.log('📋 Creating input types...');
     const inputTypes = await InputType.bulkCreate([
-      { type_name: 'Promotional', short_name: 'PROMO', description: 'Visual promotional materials used during doctor calls', status: 'active' },
-      { type_name: 'Sample', short_name: 'SAMP', description: 'Product samples for doctors', status: 'active' },
-      { type_name: 'Gift', short_name: 'GIFT', description: 'Non-product items given to doctors', status: 'active' },
-      { type_name: 'Digital', short_name: 'DIGI', description: 'Digital content like videos, presentations', status: 'active' }
-    ]);
+      { type_name: 'Promotional', short_name: 'PROMO', description: 'Visual promotional materials used during doctor calls', status: 'active', created_by: adminUser.id },
+      { type_name: 'Sample', short_name: 'SAMP', description: 'Product samples for doctors', status: 'active', created_by: adminUser.id },
+      { type_name: 'Gift', short_name: 'GIFT', description: 'Non-product items given to doctors', status: 'active', created_by: adminUser.id },
+      { type_name: 'Digital', short_name: 'DIGI', description: 'Digital content like videos, presentations', status: 'active', created_by: adminUser.id }
+    ], { validate: true });
     console.log(`✅ Created ${inputTypes.length} input types`);
 
     // ==================== INPUT CLASSES ====================
     console.log('🏷️ Creating input classes...');
     const inputClasses = await InputClass.bulkCreate([
-      { class_name: 'Visual Aid', short_name: 'VA', description: 'Visual aids used for detailing during calls', status: 'active' },
-      { class_name: 'Leave Behind', short_name: 'LBL', description: 'Literature left with doctors', status: 'active' },
-      { class_name: 'Reminder', short_name: 'RC', description: 'Reminder cards for products', status: 'active' },
-      { class_name: 'Brochure', short_name: 'BR', description: 'Product brochures', status: 'active' },
-      { class_name: 'Gift Item', short_name: 'GI', description: 'Gift items for doctors', status: 'active' }
-    ]);
+      { class_name: 'Visual Aid', short_name: 'VA', description: 'Visual aids used for detailing during calls', status: 'active', created_by: adminUser.id },
+      { class_name: 'Leave Behind', short_name: 'LBL', description: 'Literature left with doctors', status: 'active', created_by: adminUser.id },
+      { class_name: 'Reminder', short_name: 'RC', description: 'Reminder cards for products', status: 'active', created_by: adminUser.id },
+      { class_name: 'Brochure', short_name: 'BR', description: 'Product brochures', status: 'active', created_by: adminUser.id },
+      { class_name: 'Gift Item', short_name: 'GI', description: 'Gift items for doctors', status: 'active', created_by: adminUser.id }
+    ], { validate: true });
     console.log(`✅ Created ${inputClasses.length} input classes`);
 
     // ==================== INPUT MASTER ====================
     console.log('📄 Creating input master (promotional materials)...');
     const inputMaster = await InputMaster.bulkCreate([
-      { input_name: 'Visual Aid', short_name: 'VA', input_type_id: inputTypes[0].id, input_class_id: inputClasses[0].id, description: 'Visual Aid for detailing (constant - doesn\'t reduce with calls)', status: 'active' },
-      { input_name: 'Leave Behind Literature', short_name: 'LBL', input_type_id: inputTypes[0].id, input_class_id: inputClasses[1].id, description: 'Literature left with doctors after call', status: 'active' },
-      { input_name: 'Reminder Card', short_name: 'RC', input_type_id: inputTypes[0].id, input_class_id: inputClasses[2].id, description: 'Product reminder cards', status: 'active' },
-      { input_name: 'Product Brochure', short_name: 'BR', input_type_id: inputTypes[0].id, input_class_id: inputClasses[3].id, description: 'Detailed product brochures', status: 'active' },
-      { input_name: 'Gift Item', short_name: 'GIFT', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Gift items for doctors', status: 'active' },
-      { input_name: 'Pen', short_name: 'PEN', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Branded pens', status: 'active' },
-      { input_name: 'Notebook', short_name: 'NB', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Branded notebooks', status: 'active' },
-      { input_name: 'Product Video', short_name: 'VID', input_type_id: inputTypes[3].id, input_class_id: null, description: 'Digital video content', status: 'active' }
-    ]);
+      { input_name: 'Visual Aid', short_name: 'VA', input_type_id: inputTypes[0].id, input_class_id: inputClasses[0].id, description: 'Visual Aid for detailing (constant - doesn\'t reduce with calls)', status: 'active', created_by: adminUser.id },
+      { input_name: 'Leave Behind Literature', short_name: 'LBL', input_type_id: inputTypes[0].id, input_class_id: inputClasses[1].id, description: 'Literature left with doctors after call', status: 'active', created_by: adminUser.id },
+      { input_name: 'Reminder Card', short_name: 'RC', input_type_id: inputTypes[0].id, input_class_id: inputClasses[2].id, description: 'Product reminder cards', status: 'active', created_by: adminUser.id },
+      { input_name: 'Product Brochure', short_name: 'BR', input_type_id: inputTypes[0].id, input_class_id: inputClasses[3].id, description: 'Detailed product brochures', status: 'active', created_by: adminUser.id },
+      { input_name: 'Gift Item', short_name: 'GIFT', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Gift items for doctors', status: 'active', created_by: adminUser.id },
+      { input_name: 'Pen', short_name: 'PEN', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Branded pens', status: 'active', created_by: adminUser.id },
+      { input_name: 'Notebook', short_name: 'NB', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Branded notebooks', status: 'active', created_by: adminUser.id },
+      { input_name: 'Product Video', short_name: 'VID', input_type_id: inputTypes[3].id, input_class_id: null, description: 'Digital video content', status: 'active', created_by: adminUser.id }
+    ], { validate: true });
     console.log(`✅ Created ${inputMaster.length} inputs`);
 
     // ==================== SAMPLE MASTER ====================
@@ -730,15 +746,9 @@ async function seedDatabase() {
     const existingPackSizes = await PackSize.findAll({ where: { status: 'active' } });
 
     console.log('🎁 Creating sample master...');
-    const sampleMaster = await SampleMaster.bulkCreate([
-      // Use first available product if exists
-      { product_id: existingProducts[0]?.id || 1, pack_size_id: existingPackSizes[0]?.id || null, sample_name: 'PCM500 Sample', sample_qty: 2, unit: 'Tab', max_per_call: 5, status: 'active' },
-      { product_id: existingProducts[1]?.id || 2, pack_size_id: existingPackSizes[1]?.id || null, sample_name: 'OrthoGel Sample', sample_qty: 10, unit: 'g', max_per_call: 2, status: 'active' },
-      { product_id: existingProducts[2]?.id || 3, pack_size_id: existingPackSizes[2]?.id || null, sample_name: 'CardioPlus Sample', sample_qty: 5, unit: 'Tab', max_per_call: 3, status: 'active' },
-      { product_id: existingProducts[3]?.id || 4, pack_size_id: existingPackSizes[3]?.id || null, sample_name: 'DoloMax Sample', sample_qty: 10, unit: 'Tab', max_per_call: 5, status: 'active' },
-      { product_id: existingProducts[4]?.id || 5, pack_size_id: existingPackSizes[4]?.id || null, sample_name: 'Ostofem Sample', sample_qty: 30, unit: 'Tab', max_per_call: 2, status: 'active' }
-    ].filter(s => s.product_id !== null));
-    console.log(`✅ Created ${sampleMaster.length} samples`);
+    // Note: Sample master will be created after products are created
+    // This is a placeholder to ensure table exists
+    console.log('⚠️  Sample master will be created after products');
 
     // Create Products
     console.log('🛍️ Creating products...');
@@ -932,6 +942,17 @@ async function seedDatabase() {
       }
     ]);
     console.log(`✅ Created ${products.length} products`);
+
+    // ==================== SAMPLE MASTER (after products) ====================
+    console.log('🎁 Creating sample master with product references...');
+    const sampleMaster = await SampleMaster.bulkCreate([
+      { product_id: products[0]?.id, pack_size_id: packSizes[0]?.id, sample_name: 'Paracetamol 500 Sample', sample_qty: 2, unit: 'Tab', max_per_call: 5, status: 'active', created_by: adminUser.id },
+      { product_id: products[1]?.id, pack_size_id: packSizes[0]?.id, sample_name: 'Paracetamol 650 Sample', sample_qty: 2, unit: 'Tab', max_per_call: 5, status: 'active', created_by: adminUser.id },
+      { product_id: products[4]?.id, pack_size_id: packSizes[1]?.id, sample_name: 'CardioPlus 5 Sample', sample_qty: 5, unit: 'Tab', max_per_call: 3, status: 'active', created_by: adminUser.id },
+      { product_id: products[5]?.id, pack_size_id: packSizes[1]?.id, sample_name: 'CardioPlus 10 Sample', sample_qty: 5, unit: 'Tab', max_per_call: 3, status: 'active', created_by: adminUser.id },
+      { product_id: products[6]?.id, pack_size_id: packSizes[2]?.id, sample_name: 'CardioGuard Plus Sample', sample_qty: 10, unit: 'Cap', max_per_call: 2, status: 'active', created_by: adminUser.id }
+    ].filter(s => s.product_id !== undefined), { validate: true });
+    console.log(`✅ Created ${sampleMaster.length} samples`);
 
     // Create comprehensive doctors across all zones
     console.log('👨‍⚕️ Creating comprehensive doctors (Multi-Zone)...');
