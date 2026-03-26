@@ -50,11 +50,11 @@ require('./models'); // Import all models to register them with Sequelize
 db.authenticate()
   .then(() => {
     console.log('Database connection has been established successfully.');
-    // Skip auto-sync to keep server running - tables already exist
-    // return db.sync({ force: true });
+    // Sync models to create missing tables (Input Types, Input Classes, etc.)
+    return db.sync({ alter: true });
   })
   .then(async () => {
-    console.log('Database ready.');
+    console.log('Database tables synchronized.');
     
     // Start server after sync and seed
     const PORT = process.env.PORT || 5000;
