@@ -1,4 +1,4 @@
-// Simplified Seed - Odisha Only
+// Comprehensive Seed - All India Multi-Zone
 const { User, Doctor, Chemist, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Division, ProductCategory, PackSize, BrandGroup, Strength } = require('./models');
 const { hashPassword } = require('./utils/password');
 const sequelize = require('./config/database');
@@ -7,7 +7,7 @@ dotenv.config({ path: './.env' });
 
 async function seedDatabase() {
   try {
-    console.log('🌱 Starting database seeding (Odisha Only - Simplified)...\n');
+    console.log('🌱 Starting database seeding (All India Multi-Zone)...\n');
     
     // Try to clear data - if tables don't exist, it's okay
     console.log('🧹 Clearing existing data...');

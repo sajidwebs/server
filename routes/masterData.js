@@ -40,10 +40,10 @@ router.get('/doctor-classes/:id', authenticate, async (req, res) => {
 // Create doctor class (Admin only)
 router.post('/doctor-classes', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    const { category_name, short_name, status } = req.body;
+    const { class_name, short_name, status } = req.body;
     
     const doctorClass = await DoctorClass.create({
-      category_name,
+      class_name,
       short_name,
       status: status || 'active',
       created_by: req.user.id
@@ -63,9 +63,9 @@ router.put('/doctor-classes/:id', authenticate, authorize(['ADMIN']), async (req
       return res.status(404).json({ error: 'Doctor class not found' });
     }
     
-    const { category_name, short_name, status } = req.body;
+    const { class_name, short_name, status } = req.body;
     await doctorClass.update({
-      category_name: category_name || doctorClass.category_name,
+      class_name: class_name || doctorClass.class_name,
       short_name: short_name || doctorClass.short_name,
       status: status || doctorClass.status,
       updated_by: req.user.id
