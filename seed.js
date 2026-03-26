@@ -1,5 +1,5 @@
 // Comprehensive Seed - All India Multi-Zone
-const { User, Doctor, Chemist, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Division, ProductCategory, PackSize, BrandGroup, Strength } = require('./models');
+const { User, Doctor, Chemist, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Division, ProductCategory, PackSize, BrandGroup, Strength, InputType, InputClass, InputMaster, SampleMaster } = require('./models');
 const { hashPassword } = require('./utils/password');
 const sequelize = require('./config/database');
 const dotenv = require('dotenv');
@@ -16,6 +16,7 @@ async function seedDatabase() {
       await sequelize.query('TRUNCATE TABLE territories, headquarters CASCADE');
       await sequelize.query('TRUNCATE TABLE products, brand_groups, pack_sizes, product_categories, divisions, strengths CASCADE');
       await sequelize.query('TRUNCATE TABLE doctors, chemists, users CASCADE');
+      await sequelize.query('TRUNCATE TABLE input_master, input_types, input_classes, sample_master CASCADE');
       console.log('✅ Cleared existing data');
     } catch(e) {
       console.log('⚠️  Could not clear all tables (they may not exist yet)');
@@ -607,6 +608,57 @@ async function seedDatabase() {
     ]);
     console.log('✅ Created 7 strengths');
 
+    // ==================== INPUT TYPES ====================
+    console.log('📋 Creating input types...');
+    const inputTypes = await InputType.bulkCreate([
+      { type_name: 'Promotional', short_name: 'PROMO', description: 'Visual promotional materials used during doctor calls', status: 'active' },
+      { type_name: 'Sample', short_name: 'SAMP', description: 'Product samples for doctors', status: 'active' },
+      { type_name: 'Gift', short_name: 'GIFT', description: 'Non-product items given to doctors', status: 'active' },
+      { type_name: 'Digital', short_name: 'DIGI', description: 'Digital content like videos, presentations', status: 'active' }
+    ]);
+    console.log(`✅ Created ${inputTypes.length} input types`);
+
+    // ==================== INPUT CLASSES ====================
+    console.log('🏷️ Creating input classes...');
+    const inputClasses = await InputClass.bulkCreate([
+      { class_name: 'Visual Aid', short_name: 'VA', description: 'Visual aids used for detailing during calls', status: 'active' },
+      { class_name: 'Leave Behind', short_name: 'LBL', description: 'Literature left with doctors', status: 'active' },
+      { class_name: 'Reminder', short_name: 'RC', description: 'Reminder cards for products', status: 'active' },
+      { class_name: 'Brochure', short_name: 'BR', description: 'Product brochures', status: 'active' },
+      { class_name: 'Gift Item', short_name: 'GI', description: 'Gift items for doctors', status: 'active' }
+    ]);
+    console.log(`✅ Created ${inputClasses.length} input classes`);
+
+    // ==================== INPUT MASTER ====================
+    console.log('📄 Creating input master (promotional materials)...');
+    const inputMaster = await InputMaster.bulkCreate([
+      { input_name: 'Visual Aid', short_name: 'VA', input_type_id: inputTypes[0].id, input_class_id: inputClasses[0].id, description: 'Visual Aid for detailing (constant - doesn\'t reduce with calls)', status: 'active' },
+      { input_name: 'Leave Behind Literature', short_name: 'LBL', input_type_id: inputTypes[0].id, input_class_id: inputClasses[1].id, description: 'Literature left with doctors after call', status: 'active' },
+      { input_name: 'Reminder Card', short_name: 'RC', input_type_id: inputTypes[0].id, input_class_id: inputClasses[2].id, description: 'Product reminder cards', status: 'active' },
+      { input_name: 'Product Brochure', short_name: 'BR', input_type_id: inputTypes[0].id, input_class_id: inputClasses[3].id, description: 'Detailed product brochures', status: 'active' },
+      { input_name: 'Gift Item', short_name: 'GIFT', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Gift items for doctors', status: 'active' },
+      { input_name: 'Pen', short_name: 'PEN', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Branded pens', status: 'active' },
+      { input_name: 'Notebook', short_name: 'NB', input_type_id: inputTypes[2].id, input_class_id: inputClasses[4].id, description: 'Branded notebooks', status: 'active' },
+      { input_name: 'Product Video', short_name: 'VID', input_type_id: inputTypes[3].id, input_class_id: null, description: 'Digital video content', status: 'active' }
+    ]);
+    console.log(`✅ Created ${inputMaster.length} inputs`);
+
+    // ==================== SAMPLE MASTER ====================
+    // First need to get products for sample creation
+    const existingProducts = await Product.findAll({ where: { isActive: true } });
+    const existingPackSizes = await PackSize.findAll({ where: { status: 'active' } });
+
+    console.log('🎁 Creating sample master...');
+    const sampleMaster = await SampleMaster.bulkCreate([
+      // Use first available product if exists
+      { product_id: existingProducts[0]?.id || 1, pack_size_id: existingPackSizes[0]?.id || null, sample_name: 'PCM500 Sample', sample_qty: 2, unit: 'Tab', max_per_call: 5, status: 'active' },
+      { product_id: existingProducts[1]?.id || 2, pack_size_id: existingPackSizes[1]?.id || null, sample_name: 'OrthoGel Sample', sample_qty: 10, unit: 'g', max_per_call: 2, status: 'active' },
+      { product_id: existingProducts[2]?.id || 3, pack_size_id: existingPackSizes[2]?.id || null, sample_name: 'CardioPlus Sample', sample_qty: 5, unit: 'Tab', max_per_call: 3, status: 'active' },
+      { product_id: existingProducts[3]?.id || 4, pack_size_id: existingPackSizes[3]?.id || null, sample_name: 'DoloMax Sample', sample_qty: 10, unit: 'Tab', max_per_call: 5, status: 'active' },
+      { product_id: existingProducts[4]?.id || 5, pack_size_id: existingPackSizes[4]?.id || null, sample_name: 'Ostofem Sample', sample_qty: 30, unit: 'Tab', max_per_call: 2, status: 'active' }
+    ].filter(s => s.product_id !== null));
+    console.log(`✅ Created ${sampleMaster.length} samples`);
+
     // Create Products
     console.log('🛍️ Creating products...');
     const products = await Product.bulkCreate([
@@ -892,6 +944,10 @@ async function seedDatabase() {
     console.log(`     ✅ Comprehensive Doctor Master across all zones`);
     console.log(`     ✅ Sampark Doctor class for strategic market contacts`);
     console.log(`     ✅ Complete Product Master with 13 products`);
+    console.log(`     ✅ Input Type Master with 4 types`);
+    console.log(`     ✅ Input Class Master with 5 classes`);
+    console.log(`     ✅ Input Master (Promotional Materials) with 8 inputs`);
+    console.log(`     ✅ Sample Master with ${sampleMaster?.length || 0} samples`);
     console.log(`     ✅ Access Control Hierarchy support ready`);
     console.log('═══════════════════════════════════════════════════════════\n');
 

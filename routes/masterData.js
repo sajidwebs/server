@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Territory, Headquarter, Chemist, Product, Activity, Hospital } = require('../models');
+const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Territory, Headquarter, Chemist, Product, Activity, Hospital, InputType, InputClass, InputMaster, SampleMaster, PackSize } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
 
 // ==================== DOCTOR CLASS ROUTES ====================
@@ -488,6 +488,431 @@ router.delete('/doctors/:id', authenticate, authorize(['ADMIN']), async (req, re
     
     await doctor.destroy();
     res.json({ message: 'Doctor deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+
+// ==================== INPUT TYPE ROUTES ====================
+
+// Get all input types (open to all authenticated users)
+router.get('/input-types', authenticate, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const where = {};
+    if (status) {
+      where.status = status;
+    }
+    
+    const types = await InputType.findAll({
+      where,
+      order: [['type_name', 'ASC']]
+    });
+    res.json(types);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single input type
+router.get('/input-types/:id', authenticate, async (req, res) => {
+  try {
+    const inputType = await InputType.findByPk(req.params.id);
+    if (!inputType) {
+      return res.status(404).json({ error: 'Input type not found' });
+    }
+    res.json(inputType);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create input type (Admin only)
+router.post('/input-types', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { type_name, short_name, description, status } = req.body;
+    
+    const inputType = await InputType.create({
+      type_name,
+      short_name,
+      description,
+      status: status || 'active',
+      created_by: req.user.id
+    });
+    
+    res.status(201).json(inputType);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update input type (Admin only)
+router.put('/input-types/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const inputType = await InputType.findByPk(req.params.id);
+    if (!inputType) {
+      return res.status(404).json({ error: 'Input type not found' });
+    }
+    
+    const { type_name, short_name, description, status } = req.body;
+    await inputType.update({
+      type_name: type_name || inputType.type_name,
+      short_name: short_name || inputType.short_name,
+      description: description !== undefined ? description : inputType.description,
+      status: status || inputType.status
+    });
+    
+    res.json(inputType);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete input type (Admin only)
+router.delete('/input-types/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const inputType = await InputType.findByPk(req.params.id);
+    if (!inputType) {
+      return res.status(404).json({ error: 'Input type not found' });
+    }
+    
+    await inputType.destroy();
+    res.json({ message: 'Input type deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== INPUT CLASS ROUTES ====================
+
+// Get all input classes (open to all authenticated users)
+router.get('/input-classes', authenticate, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const where = {};
+    if (status) {
+      where.status = status;
+    }
+    
+    const classes = await InputClass.findAll({
+      where,
+      order: [['class_name', 'ASC']]
+    });
+    res.json(classes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single input class
+router.get('/input-classes/:id', authenticate, async (req, res) => {
+  try {
+    const inputClass = await InputClass.findByPk(req.params.id);
+    if (!inputClass) {
+      return res.status(404).json({ error: 'Input class not found' });
+    }
+    res.json(inputClass);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create input class (Admin only)
+router.post('/input-classes', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { class_name, short_name, description, status } = req.body;
+    
+    const inputClass = await InputClass.create({
+      class_name,
+      short_name,
+      description,
+      status: status || 'active',
+      created_by: req.user.id
+    });
+    
+    res.status(201).json(inputClass);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update input class (Admin only)
+router.put('/input-classes/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const inputClass = await InputClass.findByPk(req.params.id);
+    if (!inputClass) {
+      return res.status(404).json({ error: 'Input class not found' });
+    }
+    
+    const { class_name, short_name, description, status } = req.body;
+    await inputClass.update({
+      class_name: class_name || inputClass.class_name,
+      short_name: short_name || inputClass.short_name,
+      description: description !== undefined ? description : inputClass.description,
+      status: status || inputClass.status
+    });
+    
+    res.json(inputClass);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete input class (Admin only)
+router.delete('/input-classes/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const inputClass = await InputClass.findByPk(req.params.id);
+    if (!inputClass) {
+      return res.status(404).json({ error: 'Input class not found' });
+    }
+    
+    await inputClass.destroy();
+    res.json({ message: 'Input class deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== INPUT MASTER ROUTES ====================
+
+// Get all inputs (open to all authenticated users)
+router.get('/inputs', authenticate, async (req, res) => {
+  try {
+    const { status, input_type_id, input_class_id } = req.query;
+    const where = {};
+    
+    if (status) where.status = status;
+    if (input_type_id) where.input_type_id = input_type_id;
+    if (input_class_id) where.input_class_id = input_class_id;
+    
+    const inputs = await InputMaster.findAll({
+      where,
+      include: [
+        { model: InputType, as: 'inputType', attributes: ['id', 'type_name', 'short_name'] },
+        { model: InputClass, as: 'inputClass', attributes: ['id', 'class_name', 'short_name'] }
+      ],
+      order: [['input_name', 'ASC']]
+    });
+    res.json(inputs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get active inputs only (for mobile app)
+router.get('/inputs/active', authenticate, async (req, res) => {
+  try {
+    const inputs = await InputMaster.findAll({
+      where: { status: 'active' },
+      include: [
+        { model: InputType, as: 'inputType', attributes: ['id', 'type_name', 'short_name'] },
+        { model: InputClass, as: 'inputClass', attributes: ['id', 'class_name', 'short_name'] }
+      ],
+      order: [['input_name', 'ASC']]
+    });
+    res.json(inputs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single input
+router.get('/inputs/:id', authenticate, async (req, res) => {
+  try {
+    const input = await InputMaster.findByPk(req.params.id, {
+      include: [
+        { model: InputType, as: 'inputType' },
+        { model: InputClass, as: 'inputClass' }
+      ]
+    });
+    if (!input) {
+      return res.status(404).json({ error: 'Input not found' });
+    }
+    res.json(input);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create input (Admin only)
+router.post('/inputs', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { input_name, short_name, input_type_id, input_class_id, description, status } = req.body;
+    
+    const input = await InputMaster.create({
+      input_name,
+      short_name,
+      input_type_id,
+      input_class_id,
+      description,
+      status: status || 'active',
+      created_by: req.user.id
+    });
+    
+    res.status(201).json(input);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update input (Admin only)
+router.put('/inputs/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const input = await InputMaster.findByPk(req.params.id);
+    if (!input) {
+      return res.status(404).json({ error: 'Input not found' });
+    }
+    
+    const { input_name, short_name, input_type_id, input_class_id, description, status } = req.body;
+    await input.update({
+      input_name: input_name || input.input_name,
+      short_name: short_name || input.short_name,
+      input_type_id: input_type_id !== undefined ? input_type_id : input.input_type_id,
+      input_class_id: input_class_id !== undefined ? input_class_id : input.input_class_id,
+      description: description !== undefined ? description : input.description,
+      status: status || input.status
+    });
+    
+    res.json(input);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete input (Admin only)
+router.delete('/inputs/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const input = await InputMaster.findByPk(req.params.id);
+    if (!input) {
+      return res.status(404).json({ error: 'Input not found' });
+    }
+    
+    await input.destroy();
+    res.json({ message: 'Input deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== SAMPLE MASTER ROUTES ====================
+
+// Get all samples (open to all authenticated users)
+router.get('/samples', authenticate, async (req, res) => {
+  try {
+    const { status, product_id } = req.query;
+    const where = {};
+    
+    if (status) where.status = status;
+    if (product_id) where.product_id = product_id;
+    
+    const samples = await SampleMaster.findAll({
+      where,
+      include: [
+        { model: Product, as: 'product', attributes: ['id', 'name', 'short_name'] },
+        { model: PackSize, as: 'packSize', attributes: ['id', 'pack_size', 'short_name'] }
+      ],
+      order: [['sample_name', 'ASC']]
+    });
+    res.json(samples);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get active samples only (for mobile app)
+router.get('/samples/active', authenticate, async (req, res) => {
+  try {
+    const samples = await SampleMaster.findAll({
+      where: { status: 'active' },
+      include: [
+        { model: Product, as: 'product', attributes: ['id', 'name', 'short_name'] },
+        { model: PackSize, as: 'packSize', attributes: ['id', 'pack_size', 'short_name'] }
+      ],
+      order: [['sample_name', 'ASC']]
+    });
+    res.json(samples);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single sample
+router.get('/samples/:id', authenticate, async (req, res) => {
+  try {
+    const sample = await SampleMaster.findByPk(req.params.id, {
+      include: [
+        { model: Product, as: 'product' },
+        { model: PackSize, as: 'packSize' }
+      ]
+    });
+    if (!sample) {
+      return res.status(404).json({ error: 'Sample not found' });
+    }
+    res.json(sample);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create sample (Admin only)
+router.post('/samples', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { product_id, pack_size_id, sample_name, sample_qty, unit, max_per_call, status } = req.body;
+    
+    const sample = await SampleMaster.create({
+      product_id,
+      pack_size_id,
+      sample_name,
+      sample_qty,
+      unit: unit || 'Tab',
+      max_per_call: max_per_call || 5,
+      status: status || 'active',
+      created_by: req.user.id
+    });
+    
+    res.status(201).json(sample);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update sample (Admin only)
+router.put('/samples/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const sample = await SampleMaster.findByPk(req.params.id);
+    if (!sample) {
+      return res.status(404).json({ error: 'Sample not found' });
+    }
+    
+    const { product_id, pack_size_id, sample_name, sample_qty, unit, max_per_call, status } = req.body;
+    await sample.update({
+      product_id: product_id !== undefined ? product_id : sample.product_id,
+      pack_size_id: pack_size_id !== undefined ? pack_size_id : sample.pack_size_id,
+      sample_name: sample_name || sample.sample_name,
+      sample_qty: sample_qty !== undefined ? sample_qty : sample.sample_qty,
+      unit: unit || sample.unit,
+      max_per_call: max_per_call !== undefined ? max_per_call : sample.max_per_call,
+      status: status || sample.status
+    });
+    
+    res.json(sample);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete sample (Admin only)
+router.delete('/samples/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const sample = await SampleMaster.findByPk(req.params.id);
+    if (!sample) {
+      return res.status(404).json({ error: 'Sample not found' });
+    }
+    
+    await sample.destroy();
+    res.json({ message: 'Sample deleted successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

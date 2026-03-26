@@ -25,6 +25,12 @@ const ProductPriceHistory = require('./ProductPriceHistory');
 const ApprovalQueue = require('./ApprovalQueue');
 const ApprovalHistory = require('./ApprovalHistory');
 
+// Input & Sample Master Models
+const InputType = require('./InputType');
+const InputClass = require('./InputClass');
+const InputMaster = require('./InputMaster');
+const SampleMaster = require('./SampleMaster');
+
 // ==================== RELATIONSHIPS ====================
 
 // User - Activity
@@ -213,6 +219,54 @@ User.belongsTo(Territory, {
   as: 'territory'
 });
 
+// ==================== INPUT MASTER RELATIONSHIPS ====================
+
+// InputType - InputMaster
+InputType.hasMany(InputMaster, {
+  foreignKey: 'input_type_id',
+  as: 'inputs'
+});
+
+InputMaster.belongsTo(InputType, {
+  foreignKey: 'input_type_id',
+  as: 'inputType'
+});
+
+// InputClass - InputMaster
+InputClass.hasMany(InputMaster, {
+  foreignKey: 'input_class_id',
+  as: 'inputs'
+});
+
+InputMaster.belongsTo(InputClass, {
+  foreignKey: 'input_class_id',
+  as: 'inputClass'
+});
+
+// ==================== SAMPLE MASTER RELATIONSHIPS ====================
+
+// Product - SampleMaster
+Product.hasMany(SampleMaster, {
+  foreignKey: 'product_id',
+  as: 'samples'
+});
+
+SampleMaster.belongsTo(Product, {
+  foreignKey: 'product_id',
+  as: 'product'
+});
+
+// PackSize - SampleMaster
+PackSize.hasMany(SampleMaster, {
+  foreignKey: 'pack_size_id',
+  as: 'samples'
+});
+
+SampleMaster.belongsTo(PackSize, {
+  foreignKey: 'pack_size_id',
+  as: 'packSize'
+});
+
 // ==================== EXPORT MODELS ====================
 
 module.exports = {
@@ -240,5 +294,10 @@ module.exports = {
   Strength,
   ProductPriceHistory,
   ApprovalQueue,
-  ApprovalHistory
+  ApprovalHistory,
+  // Input & Sample Master Models
+  InputType,
+  InputClass,
+  InputMaster,
+  SampleMaster
 };

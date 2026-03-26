@@ -44,7 +44,11 @@ const authorize = (...roles) => {
       });
     }
     
-    if (!roles.includes(req.user.role)) {
+    // Check role case-insensitively
+    const userRole = req.user.role ? req.user.role.toUpperCase() : '';
+    const allowedRoles = roles.map(r => r.toUpperCase());
+    
+    if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({ 
         message: 'Access denied. Insufficient permissions.' 
       });
