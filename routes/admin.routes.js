@@ -110,8 +110,6 @@ router.get('/dashboard-stats', authenticate, async (req, res) => {
   }
 });
 
-const { authenticate } = require('../middleware/auth');
-
 // User Management
 router.get('/users', async (req, res) => {
   try {
