@@ -22,6 +22,87 @@ async function seedDatabase() {
       console.log('⚠️  Could not clear all tables (they may not exist yet)');
     }
 
+    // Create input_types table if it doesn't exist
+    console.log('📋 Creating input_types table...');
+    try {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS input_types (
+          id SERIAL PRIMARY KEY,
+          type_name VARCHAR(255) NOT NULL UNIQUE,
+          short_name VARCHAR(10) NOT NULL UNIQUE,
+          description TEXT,
+          status VARCHAR(20) DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ input_types table ready');
+    } catch(e) {
+      console.log('⚠️  input_types table error:', e.message);
+    }
+
+    // Create input_classes table if it doesn't exist
+    console.log('🏷️ Creating input_classes table...');
+    try {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS input_classes (
+          id SERIAL PRIMARY KEY,
+          class_name VARCHAR(255) NOT NULL UNIQUE,
+          short_name VARCHAR(10) NOT NULL UNIQUE,
+          description TEXT,
+          status VARCHAR(20) DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ input_classes table ready');
+    } catch(e) {
+      console.log('⚠️  input_classes table error:', e.message);
+    }
+
+    // Create input_master table if it doesn't exist
+    console.log('📄 Creating input_master table...');
+    try {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS input_master (
+          id SERIAL PRIMARY KEY,
+          input_name VARCHAR(255) NOT NULL UNIQUE,
+          short_name VARCHAR(10) NOT NULL UNIQUE,
+          input_type_id INTEGER REFERENCES input_types(id),
+          input_class_id INTEGER REFERENCES input_classes(id),
+          description TEXT,
+          status VARCHAR(20) DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ input_master table ready');
+    } catch(e) {
+      console.log('⚠️  input_master table error:', e.message);
+    }
+
+    // Create sample_master table if it doesn't exist
+    console.log('🎁 Creating sample_master table...');
+    try {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS sample_master (
+          id SERIAL PRIMARY KEY,
+          product_id INTEGER NOT NULL REFERENCES products(id),
+          pack_size_id INTEGER REFERENCES pack_sizes(id),
+          sample_name VARCHAR(255) NOT NULL,
+          sample_qty DECIMAL(10,2) NOT NULL,
+          unit VARCHAR(20) DEFAULT 'Tab',
+          max_per_call INTEGER DEFAULT 5,
+          status VARCHAR(20) DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ sample_master table ready');
+    } catch(e) {
+      console.log('⚠️  sample_master table error:', e.message);
+    }
+
     const hashedPassword = await hashPassword('admin123');
     
     // Create admin user
