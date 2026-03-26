@@ -5,8 +5,8 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 // ==================== DOCTOR CLASS ROUTES ====================
 
-// Get all doctor classes
-router.get('/doctor-classes', async (req, res) => {
+// Get all doctor classes (open to all authenticated users)
+router.get('/doctor-classes', authenticate, async (req, res) => {
   try {
     const { status } = req.query;
     const where = {};
@@ -25,7 +25,7 @@ router.get('/doctor-classes', async (req, res) => {
 });
 
 // Get single doctor class
-router.get('/doctor-classes/:id', async (req, res) => {
+router.get('/doctor-classes/:id', authenticate, async (req, res) => {
   try {
     const doctorClass = await DoctorClass.findByPk(req.params.id);
     if (!doctorClass) {
@@ -94,8 +94,8 @@ router.delete('/doctor-classes/:id', authenticate, authorize(['ADMIN']), async (
 
 // ==================== DOCTOR CATEGORY ROUTES ====================
 
-// Get all doctor categories
-router.get('/doctor-categories', async (req, res) => {
+// Get all doctor categories (open to all authenticated users)
+router.get('/doctor-categories', authenticate, async (req, res) => {
   try {
     const { status } = req.query;
     const where = {};
@@ -114,7 +114,7 @@ router.get('/doctor-categories', async (req, res) => {
 });
 
 // Get single doctor category
-router.get('/doctor-categories/:id', async (req, res) => {
+router.get('/doctor-categories/:id', authenticate, async (req, res) => {
   try {
     const category = await DoctorCategory.findByPk(req.params.id);
     if (!category) {
@@ -194,8 +194,8 @@ router.delete('/doctor-categories/:id', authenticate, authorize(['ADMIN']), asyn
 
 // ==================== DOCTOR SPECIALTY ROUTES ====================
 
-// Get all doctor specialties
-router.get('/doctor-specialties', async (req, res) => {
+// Get all doctor specialties (open to all authenticated users)
+router.get('/doctor-specialties', authenticate, async (req, res) => {
   try {
     const { status } = req.query;
     const where = {};
@@ -214,7 +214,7 @@ router.get('/doctor-specialties', async (req, res) => {
 });
 
 // Get single doctor specialty
-router.get('/doctor-specialties/:id', async (req, res) => {
+router.get('/doctor-specialties/:id', authenticate, async (req, res) => {
   try {
     const specialty = await DoctorSpecialty.findByPk(req.params.id);
     if (!specialty) {
@@ -283,8 +283,8 @@ router.delete('/doctor-specialties/:id', authenticate, authorize(['ADMIN']), asy
 
 // ==================== DOCTOR QUALIFICATION ROUTES ====================
 
-// Get all doctor qualifications
-router.get('/doctor-qualifications', async (req, res) => {
+// Get all doctor qualifications (open to all authenticated users)
+router.get('/doctor-qualifications', authenticate, async (req, res) => {
   try {
     const { status } = req.query;
     const where = {};
@@ -303,7 +303,7 @@ router.get('/doctor-qualifications', async (req, res) => {
 });
 
 // Get single doctor qualification
-router.get('/doctor-qualifications/:id', async (req, res) => {
+router.get('/doctor-qualifications/:id', authenticate, async (req, res) => {
   try {
     const qualification = await DoctorQualification.findByPk(req.params.id);
     if (!qualification) {
@@ -372,8 +372,8 @@ router.delete('/doctor-qualifications/:id', authenticate, authorize(['ADMIN']), 
 
 // ==================== DOCTOR MASTER ROUTES ====================
 
-// Get all doctors with filters
-router.get('/doctors', async (req, res) => {
+// Get all doctors with filters (open to all authenticated users)
+router.get('/doctors', authenticate, async (req, res) => {
   try {
     const { territory_id, hq_id, category_id, specialty_id, status } = req.query;
     const where = {};
@@ -401,7 +401,7 @@ router.get('/doctors', async (req, res) => {
 });
 
 // Get single doctor
-router.get('/doctors/:id', async (req, res) => {
+router.get('/doctors/:id', authenticate, async (req, res) => {
   try {
     const doctor = await Doctor.findByPk(req.params.id, {
       include: [

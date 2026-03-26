@@ -32,7 +32,7 @@ const requireAdmin = async (req, res, next) => {
       });
     }
 
-    if (user.role !== 'admin') {
+    if (user.role !== 'admin' && user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
@@ -50,7 +50,7 @@ const requireAdmin = async (req, res, next) => {
 router.use(requireAdmin);
 
 // Dashboard Statistics
-router.get('/dashboard-stats', async (req, res) => {
+router.get('/dashboard-stats', authenticate, async (req, res) => {
   try {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
@@ -110,8 +110,7 @@ router.get('/dashboard-stats', async (req, res) => {
   }
 });
 
-// User Management
-router.get('/users', async (req, res) => {
+const { authenticate, authorize } = require('../middleware/auth');
   try {
     const users = await User.findAll({
       attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive', 'lastLogin', 'createdAt'],
@@ -136,7 +135,7 @@ router.get('/users', async (req, res) => {
   }
 });
 
-router.post('/users', async (req, res) => {
+router.post('/users', authenticate, async (req, res) => {
   try {
     const { firstName, lastName, email, role, isActive } = req.body;
 
@@ -166,7 +165,7 @@ router.post('/users', async (req, res) => {
   }
 });
 
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { firstName, lastName, email, role, isActive } = req.body;
@@ -198,7 +197,7 @@ router.put('/users/:id', async (req, res) => {
   }
 });
 
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -215,8 +214,8 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
-// Reports
-router.get('/reports', async (req, res) => {
+// Reports (Admin only)
+router.get('/reports', authenticate, async (req, res) => {
   try {
     const { type, startDate, endDate } = req.query;
 
@@ -404,7 +403,7 @@ async function getMonthlyStatsReport() {
 }
 
 // Recent Activity for Dashboard
-router.get('/recent-activity', async (req, res) => {
+router.get('/recent-activity', authenticate, async (req, res) => {
   try {
     // Fetch recent activities from database
     const recentActivities = await Activity.findAll({

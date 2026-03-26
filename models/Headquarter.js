@@ -23,7 +23,7 @@ const Headquarter = sequelize.define('Headquarter', {
     }
   },
   type: {
-    type: DataTypes.ENUM('Regional Office', 'Branch Office', 'Head Office', 'Zonal Office'),
+    type: DataTypes.ENUM('Regional Office', 'Branch Office', 'Head Office', 'Zonal Office', 'Metro', 'Non Metro', 'Hill Station', 'Semi Metro'),
     allowNull: false,
     defaultValue: 'Branch Office'
   },
