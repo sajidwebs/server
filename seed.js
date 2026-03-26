@@ -50,10 +50,10 @@ async function seedDatabase() {
     // Create Doctor Classes
     console.log('🏷️ Creating doctor classes...');
     const doctorClasses = await DoctorClass.bulkCreate([
-      { class_name: 'Class A', short_name: 'A', status: 'active' },
-      { class_name: 'Class B', short_name: 'B', status: 'active' },
-      { class_name: 'Class C', short_name: 'C', status: 'active' },
-      { class_name: 'Sampark Doctor', short_name: 'SAMP', status: 'active' }
+      { category_name: 'Class A', short_name: 'A', status: 'active' },
+      { category_name: 'Class B', short_name: 'B', status: 'active' },
+      { category_name: 'Class C', short_name: 'C', status: 'active' },
+      { category_name: 'Sampark Doctor', short_name: 'SAMP', status: 'active' }
     ]);
     console.log(`✅ Created ${doctorClasses.length} doctor classes (including Sampark Doctor)`);
 
