@@ -110,7 +110,10 @@ router.get('/dashboard-stats', authenticate, async (req, res) => {
   }
 });
 
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
+
+// User Management
+router.get('/users', async (req, res) => {
   try {
     const users = await User.findAll({
       attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive', 'lastLogin', 'createdAt'],
