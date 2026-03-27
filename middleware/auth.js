@@ -44,9 +44,20 @@ const authorize = (...roles) => {
       });
     }
     
+    // Handle both string and array inputs
+    let roleList = roles;
+    if (roles.length === 1 && typeof roles[0] === 'string') {
+      // If single string passed, check if it's comma-separated or single
+      if (roles[0].includes(',')) {
+        roleList = roles[0].split(',').map(r => r.trim());
+      } else {
+        roleList = [roles[0]];
+      }
+    }
+    
     // Check role case-insensitively
-    const userRole = req.user.role ? req.user.role.toUpperCase() : '';
-    const allowedRoles = roles.map(r => r.toUpperCase());
+    const userRole = req.user.role ? req.user.role.toString().toUpperCase() : '';
+    const allowedRoles = roleList.map(r => r.toString().toUpperCase());
     
     if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({ 
