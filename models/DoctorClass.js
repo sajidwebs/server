@@ -7,7 +7,7 @@ const DoctorClass = sequelize.define('DoctorClass', {
     primaryKey: true,
     autoIncrement: true
   },
-  category_name: {
+  class_name: {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {

@@ -16,7 +16,7 @@ router.get('/doctor-classes', authenticate, async (req, res) => {
     
     const classes = await DoctorClass.findAll({
       where,
-      order: [['category_name', 'ASC']]
+      order: [['class_name', 'ASC']]
     });
     res.json(classes);
   } catch (error) {
