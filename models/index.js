@@ -267,6 +267,73 @@ SampleMaster.belongsTo(PackSize, {
   as: 'packSize'
 });
 
+// ==================== PRODUCT ASSOCIATIONS ====================
+// Product - Division
+Division.hasMany(Product, {
+  foreignKey: 'division_id',
+  as: 'products'
+});
+
+Product.belongsTo(Division, {
+  foreignKey: 'division_id',
+  as: 'divisionData'
+});
+
+// Product - BrandGroup
+BrandGroup.hasMany(Product, {
+  foreignKey: 'brand_group_id',
+  as: 'products'
+});
+
+Product.belongsTo(BrandGroup, {
+  foreignKey: 'brand_group_id',
+  as: 'brandGroupData'
+});
+
+// BrandGroup - Division
+Division.hasMany(BrandGroup, {
+  foreignKey: 'division_id',
+  as: 'brandGroups'
+});
+
+BrandGroup.belongsTo(Division, {
+  foreignKey: 'division_id',
+  as: 'division'
+});
+
+// Product - ProductCategory
+ProductCategory.hasMany(Product, {
+  foreignKey: 'category_id',
+  as: 'products'
+});
+
+Product.belongsTo(ProductCategory, {
+  foreignKey: 'category_id',
+  as: 'categoryData'
+});
+
+// Product - PackSize
+PackSize.hasMany(Product, {
+  foreignKey: 'pack_size_id',
+  as: 'products'
+});
+
+Product.belongsTo(PackSize, {
+  foreignKey: 'pack_size_id',
+  as: 'packSizeData'
+});
+
+// Product - Strength
+Strength.hasMany(Product, {
+  foreignKey: 'strength_id',
+  as: 'products'
+});
+
+Product.belongsTo(Strength, {
+  foreignKey: 'strength_id',
+  as: 'strengthData'
+});
+
 // ==================== EXPORT MODELS ====================
 
 module.exports = {
