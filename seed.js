@@ -1,5 +1,5 @@
 // Comprehensive Seed - All India Multi-Zone
-const { User, Doctor, Chemist, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Division, ProductCategory, PackSize, BrandGroup, Strength, InputType, InputClass, InputMaster, SampleMaster } = require('./models');
+const { User, Doctor, Chemist, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Division, ProductCategory, PackSize, BrandGroup, Strength, InputType, InputClass, InputMaster, SampleMaster, Sale, Projection } = require('./models');
 const { hashPassword } = require('./utils/password');
 const sequelize = require('./config/database');
 const dotenv = require('dotenv');
@@ -881,11 +881,11 @@ async function seedDatabase() {
       { firstName: 'Dr. Dilip', lastName: 'Sahu', specialty_id: doctorSpecialties[0].specialty_id, category_id: doctorCategories[0].category_id, qualification_id: doctorQualifications[1].qualification_id, specialty: 'General Medicine', location: 'Raipur', address: 'Medical Center, Raipur', phone: '+91-9876543235', email: 'dilip.sahu@email.com', isActive: true, approval_status: 'approved' },
 
       // ===== SAMPARK DOCTORS (Strategic Contact/Sampler Doctors) =====
-      { firstName: 'Mr. Vishal', lastName: 'Kumar', specialty_id: null, category_id: doctorCategories[2].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Delhi', address: 'Medical Distributor, Delhi', phone: '+91-9876543236', email: 'vishal.sampark@email.com', isActive: true, approval_status: 'approved' },
-      { firstName: 'Mr. Arun', lastName: 'Patel', specialty_id: null, category_id: doctorCategories[2].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Mumbai', address: 'Medical Distributor, Mumbai', phone: '+91-9876543237', email: 'arun.sampark@email.com', isActive: true, approval_status: 'approved' },
-      { firstName: 'Mr. Srinivas', lastName: 'Reddy', specialty_id: null, category_id: doctorCategories[2].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Bangalore', address: 'Medical Distributor, Bangalore', phone: '+91-9876543238', email: 'srinivas.sampark@email.com', isActive: true, approval_status: 'approved' },
-      { firstName: 'Mr. Prafulla', lastName: 'Das', specialty_id: null, category_id: doctorCategories[2].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Bhubaneswar', address: 'Medical Distributor, Bhubaneswar', phone: '+91-9876543239', email: 'prafulla.sampark@email.com', isActive: true, approval_status: 'approved' },
-      { firstName: 'Mr. Karunamoorthy', lastName: 'Iyer', specialty_id: null, category_id: doctorCategories[2].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Coimbatore', address: 'Medical Distributor, Coimbatore', phone: '+91-9876543240', email: 'karunamoorthy.sampark@email.com', isActive: true, approval_status: 'approved' }
+      { firstName: 'Mr. Vishal', lastName: 'Kumar', specialty_id: null, category_id: doctorCategories[0].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Delhi', address: 'Medical Distributor, Delhi', phone: '+91-9876543236', email: 'vishal.sampark@email.com', isActive: true, approval_status: 'approved' },
+      { firstName: 'Mr. Arun', lastName: 'Patel', specialty_id: null, category_id: doctorCategories[0].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Mumbai', address: 'Medical Distributor, Mumbai', phone: '+91-9876543237', email: 'arun.sampark@email.com', isActive: true, approval_status: 'approved' },
+      { firstName: 'Mr. Srinivas', lastName: 'Reddy', specialty_id: null, category_id: doctorCategories[0].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Bangalore', address: 'Medical Distributor, Bangalore', phone: '+91-9876543238', email: 'srinivas.sampark@email.com', isActive: true, approval_status: 'approved' },
+      { firstName: 'Mr. Prafulla', lastName: 'Das', specialty_id: null, category_id: doctorCategories[0].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Bhubaneswar', address: 'Medical Distributor, Bhubaneswar', phone: '+91-9876543239', email: 'prafulla.sampark@email.com', isActive: true, approval_status: 'approved' },
+      { firstName: 'Mr. Karunamoorthy', lastName: 'Iyer', specialty_id: null, category_id: doctorCategories[0].category_id, qualification_id: null, specialty: 'Sampark Doctor', location: 'Coimbatore', address: 'Medical Distributor, Coimbatore', phone: '+91-9876543240', email: 'karunamoorthy.sampark@email.com', isActive: true, approval_status: 'approved' }
     ]);
     console.log(`✅ Created ${doctors.length} doctors (including Sampark Doctors)`);
 
@@ -938,6 +938,132 @@ async function seedDatabase() {
     console.log(`     ✅ Input Master (Promotional Materials) with 8 inputs`);
     console.log(`     ✅ Sample Master with ${sampleMaster?.length || 0} samples`);
     console.log(`     ✅ Access Control Hierarchy support ready`);
+
+    // ==================== MOCK SALES DATA ====================
+    console.log('💰 Creating mock sales data...');
+    const fieldUsers = await User.findAll({ where: { role: 'user' } });
+    const allProducts = await Product.findAll();
+    const allChemists = await Chemist.findAll();
+    
+    if (fieldUsers.length > 0 && allProducts.length > 0 && allChemists.length > 0) {
+      const salesData = [];
+      const months = ['2026-01', '2026-02', '2026-03'];
+      
+      for (const month of months) {
+        for (const user of fieldUsers.slice(0, 3)) {
+          for (const product of allProducts) {
+            const qty = Math.floor(Math.random() * 50) + 10;
+            const price = parseFloat(product.mrp) || 50;
+            salesData.push({
+              userId: user.id,
+              productId: product.id,
+              productName: product.name,
+              quantity: qty,
+              price: price,
+              totalAmount: qty * price,
+              chemistId: allChemists[Math.floor(Math.random() * allChemists.length)]?.id,
+              date: `${month}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
+            });
+          }
+        }
+      }
+      
+      await Sale.bulkCreate(salesData);
+      console.log(`✅ Created ${salesData.length} sales records`);
+    } else {
+      console.log('⚠️  Skipping sales data - no users/products/chemists found');
+    }
+
+    // ==================== MOCK PROJECTIONS DATA ====================
+    console.log('📊 Creating mock projections data...');
+    
+    if (fieldUsers.length > 0 && allProducts.length > 0) {
+      const projectionData = [];
+      
+      for (const user of fieldUsers.slice(0, 3)) {
+        for (const product of allProducts) {
+          for (let month = 1; month <= 6; month++) {
+            const projQty = Math.floor(Math.random() * 100) + 20;
+            const price = parseFloat(product.mrp) || 50;
+            const projAmount = projQty * price;
+            const isPastMonth = month <= 3;
+            
+            projectionData.push({
+              userId: user.id,
+              month: month,
+              year: 2026,
+              productId: product.id,
+              productName: product.name,
+              projectedQuantity: projQty,
+              actualQuantity: isPastMonth ? Math.floor(projQty * (0.7 + Math.random() * 0.5)) : 0,
+              projectedAmount: projAmount,
+              actualAmount: isPastMonth ? projAmount * (0.7 + Math.random() * 0.5) : 0
+            });
+          }
+        }
+      }
+      
+      await Projection.bulkCreate(projectionData);
+      console.log(`✅ Created ${projectionData.length} projection records`);
+    } else {
+      console.log('⚠️  Skipping projections data - no users/products found');
+    }
+
+    // ==================== MOCK ACTIVITIES DATA ====================
+    console.log('📅 Creating mock activities data...');
+    const { Activity, DoctorCallProduct } = require('./models');
+    const allDoctors = await Doctor.findAll();
+    
+    if (fieldUsers.length > 0 && allDoctors.length > 0) {
+      const activityData = [];
+      const classes = await DoctorClass.findAll();
+      
+      for (const user of fieldUsers.slice(0, 3)) {
+        for (let day = 1; day <= 28; day++) {
+          const dateStr = `2026-03-${String(day).padStart(2, '0')}`;
+          const numCalls = Math.floor(Math.random() * 3) + 1;
+          
+          for (let call = 0; call < numCalls; call++) {
+            const doctor = allDoctors[Math.floor(Math.random() * allDoctors.length)];
+            const doctorClass = classes[Math.floor(Math.random() * classes.length)];
+            
+            activityData.push({
+              userId: user.id,
+              type: 'doctor_call',
+              title: `Doctor Call - Dr. ${doctor.firstName} ${doctor.lastName}`,
+              description: `Routine visit to ${doctor.firstName} ${doctor.lastName}`,
+              date: dateStr,
+              startTime: `${8 + call}:00`,
+              endTime: `${9 + call}:00`,
+              status: 'completed',
+              location: doctor.location || '',
+              notes: 'Routine follow-up visit',
+              doctorId: doctor.id,
+              doctorClassId: doctorClass?.id || null
+            });
+          }
+        }
+      }
+      
+      const createdActivities = await Activity.bulkCreate(activityData);
+      
+      // Add some product entries for doctor calls
+      const callProductData = [];
+      for (const activity of createdActivities.slice(0, 50)) {
+        const randomProduct = allProducts[Math.floor(Math.random() * allProducts.length)];
+        callProductData.push({
+          activityId: activity.id,
+          productId: randomProduct.id,
+          sampleId: null,
+          inputId: null,
+          rxPerWeek: Math.floor(Math.random() * 20) + 1
+        });
+      }
+      await DoctorCallProduct.bulkCreate(callProductData);
+      
+      console.log(`✅ Created ${activityData.length} activities with ${callProductData.length} product entries`);
+    }
+
     console.log('═══════════════════════════════════════════════════════════\n');
 
   } catch (error) {
