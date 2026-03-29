@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  Product, 
-  Division, 
-  ProductCategory, 
-  PackSize, 
-  BrandGroup, 
+const {
+  Product,
+  Division,
+  ProductCategory,
+  PackSize,
+  BrandGroup,
   Strength,
   ProductPriceHistory,
-  Activity,
   Sale
 } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
@@ -844,18 +843,14 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
       });
     }
 
-    // Rule 3: Check if product is used in sales or doctor calls
-    const associatedActivities = await Activity.count({
-      where: { product_id: req.params.id }
-    });
-    
+    // Rule 3: Check if product is used in sales
     const associatedSales = await Sale.count({
-      where: { product_id: req.params.id }
+      where: { productId: req.params.id }
     });
 
-    if (associatedActivities > 0 || associatedSales > 0) {
+    if (associatedSales > 0) {
       return res.status(400).json({
-        message: `Cannot delete this product. It is used in ${associatedActivities} activities and ${associatedSales} sales records.`
+        message: `Cannot delete this product. It is used in ${associatedSales} sales records.`
       });
     }
 
