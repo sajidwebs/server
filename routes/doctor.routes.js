@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Doctor } = require('../models');
+const { Doctor, Business, Sale } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const { validateDoctor } = require('../middleware/validation');
 
@@ -117,6 +117,17 @@ router.delete('/:id', authenticate, async (req, res) => {
     if (!doctor) {
       return res.status(404).json({ 
         message: 'Doctor not found' 
+      });
+    }
+
+    // Check if doctor is referenced in business entries
+    const associatedBusiness = await Business.count({
+      where: { doctorId: req.params.id }
+    });
+
+    if (associatedBusiness > 0) {
+      return res.status(400).json({
+        message: `Cannot delete this doctor. It is used in ${associatedBusiness} business entries.`
       });
     }
     

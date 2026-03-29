@@ -11,6 +11,34 @@ const Activity = sequelize.define('Activity', {
     type: DataTypes.INTEGER,
     allowNull: false
   },
+  type: {
+    type: DataTypes.ENUM('doctor_call', 'chemist_call', 'general'),
+    defaultValue: 'general'
+  },
+  doctorId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'doctors',
+      key: 'id'
+    }
+  },
+  doctorClassId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'doctor_classes',
+      key: 'id'
+    }
+  },
+  chemistId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'chemists',
+      key: 'id'
+    }
+  },
   title: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -37,6 +65,9 @@ const Activity = sequelize.define('Activity', {
   },
   location: {
     type: DataTypes.STRING
+  },
+  notes: {
+    type: DataTypes.TEXT
   }
 }, {
   timestamps: true,

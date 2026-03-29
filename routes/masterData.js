@@ -273,6 +273,16 @@ router.delete('/doctor-specialties/:id', authenticate, authorize(['ADMIN']), asy
     if (!specialty) {
       return res.status(404).json({ error: 'Doctor specialty not found' });
     }
+
+    const associatedDoctors = await Doctor.count({
+      where: { specialty_id: req.params.id }
+    });
+
+    if (associatedDoctors > 0) {
+      return res.status(400).json({
+        error: `Cannot delete this specialty. It is used by ${associatedDoctors} doctor(s).`
+      });
+    }
     
     await specialty.destroy();
     res.json({ message: 'Doctor specialty deleted successfully' });
@@ -361,6 +371,16 @@ router.delete('/doctor-qualifications/:id', authenticate, authorize(['ADMIN']), 
     const qualification = await DoctorQualification.findByPk(req.params.id);
     if (!qualification) {
       return res.status(404).json({ error: 'Doctor qualification not found' });
+    }
+
+    const associatedDoctors = await Doctor.count({
+      where: { qualification_id: req.params.id }
+    });
+
+    if (associatedDoctors > 0) {
+      return res.status(400).json({
+        error: `Cannot delete this qualification. It is used by ${associatedDoctors} doctor(s).`
+      });
     }
     
     await qualification.destroy();
@@ -577,6 +597,16 @@ router.delete('/input-types/:id', authenticate, authorize(['ADMIN']), async (req
     if (!inputType) {
       return res.status(404).json({ error: 'Input type not found' });
     }
+
+    const associatedInputs = await InputMaster.count({
+      where: { input_type_id: req.params.id }
+    });
+
+    if (associatedInputs > 0) {
+      return res.status(400).json({
+        error: `Cannot delete this input type. It is used by ${associatedInputs} input(s).`
+      });
+    }
     
     await inputType.destroy();
     res.json({ message: 'Input type deleted successfully' });
@@ -666,6 +696,16 @@ router.delete('/input-classes/:id', authenticate, authorize(['ADMIN']), async (r
     const inputClass = await InputClass.findByPk(req.params.id);
     if (!inputClass) {
       return res.status(404).json({ error: 'Input class not found' });
+    }
+
+    const associatedInputs = await InputMaster.count({
+      where: { input_class_id: req.params.id }
+    });
+
+    if (associatedInputs > 0) {
+      return res.status(400).json({
+        error: `Cannot delete this input class. It is used by ${associatedInputs} input(s).`
+      });
     }
     
     await inputClass.destroy();

@@ -31,6 +31,9 @@ const InputClass = require('./InputClass');
 const InputMaster = require('./InputMaster');
 const SampleMaster = require('./SampleMaster');
 
+// Doctor Call Product Model (links doctor calls to products/samples/inputs)
+const DoctorCallProduct = require('./DoctorCallProduct');
+
 // ==================== RELATIONSHIPS ====================
 
 // User - Activity
@@ -42,6 +45,83 @@ User.hasMany(Activity, {
 Activity.belongsTo(User, {
   foreignKey: 'userId',
   as: 'user'
+});
+
+// Doctor - Activity (doctor calls)
+Doctor.hasMany(Activity, {
+  foreignKey: 'doctorId',
+  as: 'activities'
+});
+
+Activity.belongsTo(Doctor, {
+  foreignKey: 'doctorId',
+  as: 'doctor'
+});
+
+// DoctorClass - Activity
+DoctorClass.hasMany(Activity, {
+  foreignKey: 'doctorClassId',
+  as: 'activities'
+});
+
+Activity.belongsTo(DoctorClass, {
+  foreignKey: 'doctorClassId',
+  as: 'doctorClass'
+});
+
+// Chemist - Activity (chemist calls)
+Chemist.hasMany(Activity, {
+  foreignKey: 'chemistId',
+  as: 'activities'
+});
+
+Activity.belongsTo(Chemist, {
+  foreignKey: 'chemistId',
+  as: 'chemist'
+});
+
+// Activity - DoctorCallProduct (product detailing per call)
+Activity.hasMany(DoctorCallProduct, {
+  foreignKey: 'activityId',
+  as: 'callProducts'
+});
+
+DoctorCallProduct.belongsTo(Activity, {
+  foreignKey: 'activityId',
+  as: 'activity'
+});
+
+// Product - DoctorCallProduct
+Product.hasMany(DoctorCallProduct, {
+  foreignKey: 'productId',
+  as: 'callProducts'
+});
+
+DoctorCallProduct.belongsTo(Product, {
+  foreignKey: 'productId',
+  as: 'product'
+});
+
+// SampleMaster - DoctorCallProduct
+SampleMaster.hasMany(DoctorCallProduct, {
+  foreignKey: 'sampleId',
+  as: 'callProducts'
+});
+
+DoctorCallProduct.belongsTo(SampleMaster, {
+  foreignKey: 'sampleId',
+  as: 'sample'
+});
+
+// InputMaster - DoctorCallProduct
+InputMaster.hasMany(DoctorCallProduct, {
+  foreignKey: 'inputId',
+  as: 'callProducts'
+});
+
+DoctorCallProduct.belongsTo(InputMaster, {
+  foreignKey: 'inputId',
+  as: 'input'
 });
 
 // User - Sale
@@ -366,5 +446,7 @@ module.exports = {
   InputType,
   InputClass,
   InputMaster,
-  SampleMaster
+  SampleMaster,
+  // Doctor Call Product Model
+  DoctorCallProduct
 };

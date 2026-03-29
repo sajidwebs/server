@@ -8,7 +8,8 @@ const {
   BrandGroup,
   Strength,
   ProductPriceHistory,
-  Sale
+  Sale,
+  SampleMaster
 } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -843,14 +844,18 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
       });
     }
 
-    // Rule 3: Check if product is used in sales
+    // Rule 3: Check if product is used in sales or samples
     const associatedSales = await Sale.count({
       where: { productId: req.params.id }
     });
 
-    if (associatedSales > 0) {
+    const associatedSamples = await SampleMaster.count({
+      where: { product_id: req.params.id }
+    });
+
+    if (associatedSales > 0 || associatedSamples > 0) {
       return res.status(400).json({
-        message: `Cannot delete this product. It is used in ${associatedSales} sales records.`
+        message: `Cannot delete this product. It is used in ${associatedSales} sales records and ${associatedSamples} sample records.`
       });
     }
 

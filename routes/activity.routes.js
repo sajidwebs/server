@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { Activity } = require('../models');
+const { Activity, DoctorCallProduct, Doctor, DoctorClass, Product, SampleMaster, InputMaster } = require('../models');
 const { authenticate } = require('../middleware/auth');
-const { validateActivity } = require('../middleware/validation');
 
 // Get all activities for a user
 router.get('/', authenticate, async (req, res) => {
@@ -28,6 +27,19 @@ router.get('/', authenticate, async (req, res) => {
 
     const activities = await Activity.findAll({
       where: whereClause,
+      include: [
+        { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName', 'specialty'] },
+        { model: DoctorClass, as: 'doctorClass', attributes: ['id', 'category_name', 'short_name'] },
+        {
+          model: DoctorCallProduct,
+          as: 'callProducts',
+          include: [
+            { model: Product, as: 'product', attributes: ['id', 'name', 'short_name'] },
+            { model: SampleMaster, as: 'sample', attributes: ['id', 'sample_name', 'sample_qty', 'unit'] },
+            { model: InputMaster, as: 'input', attributes: ['id', 'input_name', 'short_name'] }
+          ]
+        }
+      ],
       order: [['date', 'DESC'], ['startTime', 'ASC']]
     });
 
@@ -46,7 +58,21 @@ router.get('/', authenticate, async (req, res) => {
 // Get activity by ID
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const activity = await Activity.findByPk(req.params.id);
+    const activity = await Activity.findByPk(req.params.id, {
+      include: [
+        { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName', 'specialty'] },
+        { model: DoctorClass, as: 'doctorClass', attributes: ['id', 'category_name', 'short_name'] },
+        {
+          model: DoctorCallProduct,
+          as: 'callProducts',
+          include: [
+            { model: Product, as: 'product', attributes: ['id', 'name', 'short_name'] },
+            { model: SampleMaster, as: 'sample', attributes: ['id', 'sample_name', 'sample_qty', 'unit'] },
+            { model: InputMaster, as: 'input', attributes: ['id', 'input_name', 'short_name'] }
+          ]
+        }
+      ]
+    });
     
     if (!activity) {
       return res.status(404).json({ 
@@ -74,9 +100,13 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // Create new activity
-router.post('/', authenticate, validateActivity, async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
-    const { title, description, date, startTime, endTime, status, location } = req.body;
+    const { 
+      title, description, date, startTime, endTime, status, location, notes,
+      type, doctorId, doctorClassId, chemistId,
+      callProducts
+    } = req.body;
     
     const activity = await Activity.create({
       userId: req.user.id,
@@ -85,13 +115,48 @@ router.post('/', authenticate, validateActivity, async (req, res) => {
       date,
       startTime,
       endTime,
-      status,
-      location
+      status: status || 'planned',
+      location,
+      notes,
+      type: type || 'general',
+      doctorId: doctorId || null,
+      doctorClassId: doctorClassId || null,
+      chemistId: chemistId || null
+    });
+
+    // If this is a doctor call with product entries, create them
+    if (type === 'doctor_call' && callProducts && Array.isArray(callProducts) && callProducts.length > 0) {
+      const productEntries = callProducts.map(cp => ({
+        activityId: activity.id,
+        productId: cp.productId,
+        sampleId: cp.sampleId || null,
+        sampleQty: cp.sampleQty || 0,
+        inputId: cp.inputId || null,
+        rxPerWeek: cp.rxPerWeek || 0
+      }));
+      await DoctorCallProduct.bulkCreate(productEntries);
+    }
+
+    // Reload with associations
+    const createdActivity = await Activity.findByPk(activity.id, {
+      include: [
+        { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName', 'specialty'] },
+        { model: DoctorClass, as: 'doctorClass', attributes: ['id', 'category_name', 'short_name'] },
+        {
+          model: DoctorCallProduct,
+          as: 'callProducts',
+          include: [
+            { model: Product, as: 'product', attributes: ['id', 'name', 'short_name'] },
+            { model: SampleMaster, as: 'sample', attributes: ['id', 'sample_name', 'sample_qty', 'unit'] },
+            { model: InputMaster, as: 'input', attributes: ['id', 'input_name', 'short_name'] }
+          ]
+        }
+      ]
     });
     
     res.status(201).json({
       message: 'Activity created successfully',
-      activity
+      activity: createdActivity
     });
   } catch (error) {
     console.error('Create activity error:', error);
@@ -102,7 +167,7 @@ router.post('/', authenticate, validateActivity, async (req, res) => {
 });
 
 // Update activity
-router.put('/:id', authenticate, validateActivity, async (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
     const activity = await Activity.findByPk(req.params.id);
     
@@ -119,7 +184,7 @@ router.put('/:id', authenticate, validateActivity, async (req, res) => {
       });
     }
     
-    const { title, description, date, startTime, endTime, status, location } = req.body;
+    const { title, description, date, startTime, endTime, status, location, notes } = req.body;
     
     await activity.update({
       title,
@@ -128,7 +193,8 @@ router.put('/:id', authenticate, validateActivity, async (req, res) => {
       startTime,
       endTime,
       status,
-      location
+      location,
+      notes
     });
     
     res.json({
@@ -160,6 +226,9 @@ router.delete('/:id', authenticate, async (req, res) => {
         message: 'Access denied. You can only delete your own activities.' 
       });
     }
+    
+    // Delete associated product entries first
+    await DoctorCallProduct.destroy({ where: { activityId: activity.id } });
     
     await activity.destroy();
     
