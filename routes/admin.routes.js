@@ -113,8 +113,12 @@ router.get('/dashboard-stats', authenticate, async (req, res) => {
 // User Management
 router.get('/users', async (req, res) => {
   try {
+    const { Headquarter: HqModel } = require('../models');
     const users = await User.findAll({
-      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive', 'lastLogin', 'createdAt'],
+      attributes: ['id', 'firstName', 'lastName', 'fullName', 'username', 'email', 'mobileNumber', 'role', 'employeeId', 'employeeType', 'hq_id', 'territory_id', 'reportingTo', 'assigned_manager_id', 'isActive', 'lastLogin', 'createdAt'],
+      include: [
+        { model: HqModel, as: 'headquarter', attributes: ['id', 'name', 'type'], required: false }
+      ],
       order: [['createdAt', 'DESC']]
     });
 
@@ -122,8 +126,19 @@ router.get('/users', async (req, res) => {
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
+      fullName: user.fullName,
+      username: user.username,
       email: user.email,
+      mobileNumber: user.mobileNumber,
       role: user.role,
+      employeeId: user.employeeId,
+      employeeType: user.employeeType,
+      hq_id: user.hq_id,
+      hq: user.headquarter ? user.headquarter.name : null,
+      hq_type: user.headquarter ? user.headquarter.type : null,
+      territory_id: user.territory_id,
+      reportingTo: user.reportingTo,
+      assigned_manager_id: user.assigned_manager_id,
       isActive: user.isActive,
       lastLogin: user.lastLogin,
       createdAt: user.createdAt
@@ -138,17 +153,28 @@ router.get('/users', async (req, res) => {
 
 router.post('/users', authenticate, async (req, res) => {
   try {
-    const { firstName, lastName, email, role, isActive } = req.body;
+    const { hashPassword } = require('../utils/password');
+    const { firstName, lastName, fullName, username, email, mobileNumber, role, employeeId, employeeType, hq_id, territory_id, reportingTo, assigned_manager_id, isActive, password } = req.body;
 
-    // Generate a temporary password for admin-created users
-    const tempPassword = Math.random().toString(36).slice(-8) + '123';
+    // Use provided password or generate a temporary one
+    const rawPassword = password || (Math.random().toString(36).slice(-8) + '123');
+    const hashedPassword = await hashPassword(rawPassword);
 
     const newUser = await User.create({
       firstName,
       lastName,
+      fullName: fullName || `${firstName} ${lastName}`,
+      username,
       email,
-      password: tempPassword, // Temporary password - user should change it on first login
+      password: hashedPassword,
+      mobileNumber,
       role: role || 'user',
+      employeeId,
+      employeeType,
+      hq_id,
+      territory_id,
+      reportingTo,
+      assigned_manager_id,
       isActive: isActive !== undefined ? isActive : true
     });
 
@@ -156,8 +182,17 @@ router.post('/users', authenticate, async (req, res) => {
       id: newUser.id,
       firstName: newUser.firstName,
       lastName: newUser.lastName,
+      fullName: newUser.fullName,
+      username: newUser.username,
       email: newUser.email,
+      mobileNumber: newUser.mobileNumber,
       role: newUser.role,
+      employeeId: newUser.employeeId,
+      employeeType: newUser.employeeType,
+      hq_id: newUser.hq_id,
+      territory_id: newUser.territory_id,
+      reportingTo: newUser.reportingTo,
+      assigned_manager_id: newUser.assigned_manager_id,
       isActive: newUser.isActive
     });
   } catch (error) {
@@ -169,7 +204,7 @@ router.post('/users', authenticate, async (req, res) => {
 router.put('/users/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, role, isActive } = req.body;
+    const { firstName, lastName, fullName, username, email, mobileNumber, role, employeeId, employeeType, hq_id, territory_id, reportingTo, assigned_manager_id, isActive } = req.body;
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -177,19 +212,37 @@ router.put('/users/:id', authenticate, async (req, res) => {
     }
 
     await user.update({
-      firstName,
-      lastName,
-      email,
-      role,
-      isActive
+      firstName: firstName !== undefined ? firstName : user.firstName,
+      lastName: lastName !== undefined ? lastName : user.lastName,
+      fullName: fullName !== undefined ? fullName : `${firstName || user.firstName} ${lastName || user.lastName}`,
+      username: username !== undefined ? username : user.username,
+      email: email !== undefined ? email : user.email,
+      mobileNumber: mobileNumber !== undefined ? mobileNumber : user.mobileNumber,
+      role: role !== undefined ? role : user.role,
+      employeeId: employeeId !== undefined ? employeeId : user.employeeId,
+      employeeType: employeeType !== undefined ? employeeType : user.employeeType,
+      hq_id: hq_id !== undefined ? hq_id : user.hq_id,
+      territory_id: territory_id !== undefined ? territory_id : user.territory_id,
+      reportingTo: reportingTo !== undefined ? reportingTo : user.reportingTo,
+      assigned_manager_id: assigned_manager_id !== undefined ? assigned_manager_id : user.assigned_manager_id,
+      isActive: isActive !== undefined ? isActive : user.isActive
     });
 
     res.json({
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
+      fullName: user.fullName,
+      username: user.username,
       email: user.email,
+      mobileNumber: user.mobileNumber,
       role: user.role,
+      employeeId: user.employeeId,
+      employeeType: user.employeeType,
+      hq_id: user.hq_id,
+      territory_id: user.territory_id,
+      reportingTo: user.reportingTo,
+      assigned_manager_id: user.assigned_manager_id,
       isActive: user.isActive
     });
   } catch (error) {

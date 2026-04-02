@@ -114,6 +114,12 @@ app.use('/api/master', require('./routes/masterData.js'));
 // Approval Workflow Routes
 app.use('/api/approvals', require('./routes/approvals.js'));
 
+// User Master RBAC Routes
+app.use('/api/roles', require('./routes/role.routes'));
+
+// Expense Master Routes
+app.use('/api/expenses', require('./routes/expense.routes'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

@@ -34,6 +34,18 @@ const SampleMaster = require('./SampleMaster');
 // Doctor Call Product Model (links doctor calls to products/samples/inputs)
 const DoctorCallProduct = require('./DoctorCallProduct');
 
+// User Master Models (Role-Based Access Control)
+const Role = require('./Role');
+const Permission = require('./Permission');
+const RolePermission = require('./RolePermission');
+
+// Expense Master Models
+const ExpenseType = require('./ExpenseType');
+const TravelMode = require('./TravelMode');
+const StandardFareChart = require('./StandardFareChart');
+const Expense = require('./Expense');
+const ExpenseAddition = require('./ExpenseAddition');
+
 // ==================== RELATIONSHIPS ====================
 
 // User - Activity
@@ -235,6 +247,17 @@ User.belongsTo(User, {
   as: 'reportingManager'
 });
 
+// User - Assigned Manager (User Master requirement)
+User.belongsTo(User, {
+  foreignKey: 'assigned_manager_id',
+  as: 'assignedManager'
+});
+
+User.hasMany(User, {
+  foreignKey: 'assigned_manager_id',
+  as: 'managedUsers'
+});
+
 // ==================== HQ - DOCTOR RELATIONSHIPS ====================
 
 // Headquarter - Doctor
@@ -414,6 +437,113 @@ Product.belongsTo(Strength, {
   as: 'strengthData'
 });
 
+// ==================== USER MASTER RBAC RELATIONSHIPS ====================
+
+// Role - User
+Role.hasMany(User, {
+  foreignKey: 'role_id',
+  as: 'users'
+});
+
+User.belongsTo(Role, {
+  foreignKey: 'role_id',
+  as: 'roleData'
+});
+
+// Role - Permission (through RolePermission)
+Role.belongsToMany(Permission, {
+  through: RolePermission,
+  foreignKey: 'role_id',
+  otherKey: 'permission_id',
+  as: 'permissions'
+});
+
+Permission.belongsToMany(Role, {
+  through: RolePermission,
+  foreignKey: 'permission_id',
+  otherKey: 'role_id',
+  as: 'roles'
+});
+
+// ==================== EXPENSE MASTER RELATIONSHIPS ====================
+
+// User - Expense
+User.hasMany(Expense, {
+  foreignKey: 'user_id',
+  as: 'expenses'
+});
+
+Expense.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'employee'
+});
+
+// Headquarter - Expense
+Headquarter.hasMany(Expense, {
+  foreignKey: 'hq_id',
+  as: 'expenses'
+});
+
+Expense.belongsTo(Headquarter, {
+  foreignKey: 'hq_id',
+  as: 'headquarter'
+});
+
+// Territory - Expense
+Territory.hasMany(Expense, {
+  foreignKey: 'territory_id',
+  as: 'expenses'
+});
+
+Expense.belongsTo(Territory, {
+  foreignKey: 'territory_id',
+  as: 'territory'
+});
+
+// TravelMode - Expense
+TravelMode.hasMany(Expense, {
+  foreignKey: 'travel_mode_id',
+  as: 'expenses'
+});
+
+Expense.belongsTo(TravelMode, {
+  foreignKey: 'travel_mode_id',
+  as: 'travelMode'
+});
+
+// StandardFareChart - Expense
+StandardFareChart.hasMany(Expense, {
+  foreignKey: 'fare_chart_id',
+  as: 'expenses'
+});
+
+Expense.belongsTo(StandardFareChart, {
+  foreignKey: 'fare_chart_id',
+  as: 'fareChart'
+});
+
+// User - StandardFareChart (employee-specific fare chart)
+User.hasMany(StandardFareChart, {
+  foreignKey: 'employee_id',
+  as: 'fareCharts'
+});
+
+StandardFareChart.belongsTo(User, {
+  foreignKey: 'employee_id',
+  as: 'employee'
+});
+
+// Expense - ExpenseAddition
+Expense.hasMany(ExpenseAddition, {
+  foreignKey: 'expense_id',
+  as: 'additions'
+});
+
+ExpenseAddition.belongsTo(Expense, {
+  foreignKey: 'expense_id',
+  as: 'expense'
+});
+
 // ==================== EXPORT MODELS ====================
 
 module.exports = {
@@ -448,5 +578,15 @@ module.exports = {
   InputMaster,
   SampleMaster,
   // Doctor Call Product Model
-  DoctorCallProduct
+  DoctorCallProduct,
+  // User Master RBAC Models
+  Role,
+  Permission,
+  RolePermission,
+  // Expense Master Models
+  ExpenseType,
+  TravelMode,
+  StandardFareChart,
+  Expense,
+  ExpenseAddition
 };

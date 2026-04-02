@@ -17,6 +17,7 @@ async function seedDatabase() {
       await sequelize.query('TRUNCATE TABLE products, brand_groups, pack_sizes, product_categories, divisions, strengths CASCADE');
       await sequelize.query('TRUNCATE TABLE doctors, chemists, users CASCADE');
       await sequelize.query('TRUNCATE TABLE input_master, input_types, input_classes, sample_master CASCADE');
+      await sequelize.query('TRUNCATE TABLE doctor_call_products, sales, projections, activities CASCADE');
       console.log('✅ Cleared existing data');
     } catch(e) {
       console.log('⚠️  Could not clear all tables (they may not exist yet)');
@@ -938,6 +939,41 @@ async function seedDatabase() {
     console.log(`     ✅ Input Master (Promotional Materials) with 8 inputs`);
     console.log(`     ✅ Sample Master with ${sampleMaster?.length || 0} samples`);
     console.log(`     ✅ Access Control Hierarchy support ready`);
+
+    // ==================== ALTER ACTIVITIES TABLE ====================
+    console.log('🔧 Adding new columns to activities table...');
+    try {
+      await sequelize.query(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS "type" VARCHAR(20) DEFAULT 'general'`);
+      await sequelize.query(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS "doctorId" INTEGER`);
+      await sequelize.query(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS "doctorClassId" INTEGER`);
+      await sequelize.query(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS "chemistId" INTEGER`);
+      await sequelize.query(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS "notes" TEXT`);
+      console.log('✅ Activities table updated');
+    } catch (e) {
+      console.log('⚠️  Activities table alter skipped:', e.message);
+    }
+
+    // Create doctor_call_products table if not exists
+    console.log('📋 Creating doctor_call_products table...');
+    try {
+      await sequelize.query(`DROP TABLE IF EXISTS doctor_call_products CASCADE`);
+      await sequelize.query(`
+        CREATE TABLE doctor_call_products (
+          id SERIAL PRIMARY KEY,
+          "activityId" INTEGER REFERENCES activities(id),
+          "productId" INTEGER REFERENCES products(id),
+          "sampleId" INTEGER,
+          "sampleQty" INTEGER DEFAULT 0,
+          "inputId" INTEGER,
+          "rxPerWeek" INTEGER DEFAULT 0,
+          "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ doctor_call_products table ready');
+    } catch (e) {
+      console.log('⚠️  doctor_call_products table error:', e.message);
+    }
 
     // ==================== MOCK SALES DATA ====================
     console.log('💰 Creating mock sales data...');
