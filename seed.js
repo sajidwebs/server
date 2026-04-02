@@ -1,5 +1,4 @@
 // Comprehensive Seed - All India Multi-Zone
-const { User, Doctor, Chemist, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Division, ProductCategory, PackSize, BrandGroup, Strength, InputType, InputClass, InputMaster, SampleMaster, Sale, Projection } = require('./models');
 const { hashPassword } = require('./utils/password');
 const sequelize = require('./config/database');
 const dotenv = require('dotenv');
@@ -7,6 +6,12 @@ dotenv.config({ path: './.env' });
 
 async function seedDatabase() {
   try {
+    // Import models inside function to avoid initialization order issues
+    await sequelize.authenticate();
+    console.log('✅ Database connected');
+    
+    const { User, Doctor, Chemist, Territory, Product, Headquarter, DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Division, ProductCategory, PackSize, BrandGroup, Strength, InputType, InputClass, InputMaster, SampleMaster, Sale, Projection, Expense, TravelMode, StandardFareChart } = require('./models');
+    
     console.log('🌱 Starting database seeding (All India Multi-Zone)...\n');
     
     // Try to clear data - if tables don't exist, it's okay
@@ -15,9 +20,10 @@ async function seedDatabase() {
       await sequelize.query('TRUNCATE TABLE doctor_specialties, doctor_categories, doctor_qualifications, doctor_classes CASCADE');
       await sequelize.query('TRUNCATE TABLE territories, headquarters CASCADE');
       await sequelize.query('TRUNCATE TABLE products, brand_groups, pack_sizes, product_categories, divisions, strengths CASCADE');
-      await sequelize.query('TRUNCATE TABLE doctors, chemists, users CASCADE');
+      // Don't truncate users - they have User Master data from seed_expense.js
+      // await sequelize.query('TRUNCATE TABLE doctors, chemists, users CASCADE');
       await sequelize.query('TRUNCATE TABLE input_master, input_types, input_classes, sample_master CASCADE');
-      await sequelize.query('TRUNCATE TABLE doctor_call_products, sales, projections, activities CASCADE');
+      await sequelize.query('TRUNCATE TABLE doctor_call_products, sales, projections, activities, expenses, expense_additions CASCADE');
       console.log('✅ Cleared existing data');
     } catch(e) {
       console.log('⚠️  Could not clear all tables (they may not exist yet)');
@@ -122,28 +128,8 @@ async function seedDatabase() {
 
     const hashedPassword = await hashPassword('admin123');
     
-    // Create admin user
-    console.log('👤 Creating admin user...');
-    const adminUser = await User.create({
-      firstName: 'Admin',
-      lastName: 'User',
-      email: 'admin@pamsforce.com',
-      password: hashedPassword,
-      role: 'admin',
-      isActive: true
-    });
-    console.log('✅ Admin user created!');
-
-    // Create field representatives
-    console.log('👥 Creating field representatives...');
-    const fieldReps = await User.bulkCreate([
-      { firstName: 'Hussain', lastName: 'Syed', email: 'hussain.syed@company.com', password: hashedPassword, role: 'user', isActive: true },
-      { firstName: 'Rajesh', lastName: 'Kumar', email: 'rajesh.kumar@company.com', password: hashedPassword, role: 'user', isActive: true },
-      { firstName: 'Priya', lastName: 'Sharma', email: 'priya.sharma@company.com', password: hashedPassword, role: 'user', isActive: true },
-      { firstName: 'Amit', lastName: 'Patel', email: 'amit.patel@company.com', password: hashedPassword, role: 'user', isActive: true },
-      { firstName: 'Sneha', lastName: 'Reddy', email: 'sneha.reddy@company.com', password: hashedPassword, role: 'user', isActive: true }
-    ]);
-    console.log('✅ Created 5 field representatives');
+    // Don't create users - they are managed by seed_expense.js with User Master data
+    console.log('👤 Users managed by seed_expense.js - skipping...');
 
     // Create Doctor Classes
     console.log('🏷️ Creating doctor classes...');
@@ -983,13 +969,15 @@ async function seedDatabase() {
     
     if (fieldUsers.length > 0 && allProducts.length > 0 && allChemists.length > 0) {
       const salesData = [];
-      const months = ['2026-01', '2026-02', '2026-03'];
+      const months = ['2026-01', '2026-02', '2026-03', '2026-04'];
       
       for (const month of months) {
         for (const user of fieldUsers.slice(0, 3)) {
           for (const product of allProducts) {
             const qty = Math.floor(Math.random() * 50) + 10;
             const price = parseFloat(product.mrp) || 50;
+            // For April, ensure at least one sale on day 01 so dashboard shows data
+            const day = month === '2026-04' ? '01' : String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
             salesData.push({
               userId: user.id,
               productId: product.id,
@@ -998,7 +986,7 @@ async function seedDatabase() {
               price: price,
               totalAmount: qty * price,
               chemistId: allChemists[Math.floor(Math.random() * allChemists.length)]?.id,
-              date: `${month}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
+              date: `${month}-${day}`
             });
           }
         }
@@ -1098,6 +1086,76 @@ async function seedDatabase() {
       await DoctorCallProduct.bulkCreate(callProductData);
       
       console.log(`✅ Created ${activityData.length} activities with ${callProductData.length} product entries`);
+    }
+
+    // ==================== MOCK EXPENSE DATA ====================
+    console.log('💰 Creating mock expense data...');
+    // Models already imported at the top
+    const allHQs = await Headquarter.findAll();
+    const allTerritories = await Territory.findAll();
+    let allTravelModes = await TravelMode.findAll();
+    
+    // Ensure travel modes exist for expense data
+    if (allTravelModes.length === 0) {
+      console.log('⚠️  No travel modes found, creating defaults...');
+      allTravelModes = await TravelMode.bulkCreate([
+        { travel_type: 'Bus', short_name: 'BUS', description: 'Bus travel', requires_distance: false, status: 'active' },
+        { travel_type: 'Train', short_name: 'TRAIN', description: 'Train travel', requires_distance: false, status: 'active' },
+        { travel_type: 'Own Vehicle', short_name: 'OWN', description: 'Own vehicle', requires_distance: true, status: 'active' },
+        { travel_type: 'Auto', short_name: 'AUTO', description: 'Auto rickshaw', requires_distance: false, status: 'active' },
+        { travel_type: 'Taxi', short_name: 'TAXI', description: 'Taxi/Cab', requires_distance: false, status: 'active' }
+      ]);
+      console.log(`✅ Created ${allTravelModes.length} travel modes`);
+    }
+
+    if (fieldUsers.length > 0) {
+      // Simplified expense data - just April (current month) for demo
+      const expenseData = [];
+      const month = '04';
+      
+      for (const user of fieldUsers.slice(0, 3)) {
+        const hq = allHQs[Math.floor(Math.random() * allHQs.length)];
+        const territory = allTerritories[Math.floor(Math.random() * allTerritories.length)];
+        const travelMode = allTravelModes[Math.floor(Math.random() * allTravelModes.length)];
+        
+        // Create 1 sample expense entry per day for April (up to day 2)
+        for (let day = 1; day <= 2; day++) {
+          const dateStr = `2026-${month}-${String(day).padStart(2, '0')}`;
+          const isLeave = Math.random() > 0.9;
+          const isSunday = new Date(2026, 3, day).getDay() === 0;
+          const status = isLeave ? 'Leave' : (isSunday ? 'Sunday' : 'Working');
+          
+          expenseData.push({
+            user_id: user.id,
+            month: month,
+            year: '2026',
+            date: dateStr,
+            working_status: status,
+            hq_id: hq?.id || null,
+            territory_id: territory?.id || null,
+            doctor_calls: isLeave ? '0' : String(Math.floor(Math.random() * 5) + 1),
+            chemist_calls: isLeave ? '0' : String(Math.floor(Math.random() * 3) + 1),
+            business_amount: isLeave ? '0' : String(Math.floor(Math.random() * 5000) + 500),
+            allowance: isLeave ? '0' : (isSunday ? '0' : '300'),
+            from_place: 'HQ',
+            to_place: 'Field',
+            travel_mode_id: travelMode?.id || null,
+            travel_entry_amount: isLeave ? '0' : '150',
+            distance_km: isLeave ? '0' : '25',
+            ta: isLeave ? '0' : '200',
+            miscellaneous: '0',
+            remarks: '',
+            approval_status: 'draft',
+            created_by: user.id,
+            updated_by: user.id
+          });
+        }
+      }
+      
+      await Expense.bulkCreate(expenseData);
+      console.log(`✅ Created ${expenseData.length} expense records`);
+    } else {
+      console.log('⚠️  Skipping expense data - no users found');
     }
 
     console.log('═══════════════════════════════════════════════════════════\n');

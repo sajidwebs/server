@@ -10,18 +10,23 @@ async function seedExpenseAndRoles() {
     const hashedPassword = await hashPassword('admin123');
 
     // ==================== 1. ROLES (User Master) ====================
-    console.log('👤 Creating roles...');
-    const roles = await Role.bulkCreate([
-      { role_name: 'Admin', short_name: 'Admin', description: 'Full system control', hierarchy_level: 10, status: 'active' },
-      { role_name: 'HR', short_name: 'HR', description: 'Salary & employee management', hierarchy_level: 8, status: 'active' },
-      { role_name: 'NSM', short_name: 'NSM', description: 'National Sales Manager', hierarchy_level: 6, status: 'active' },
-      { role_name: 'RBM', short_name: 'RBM', description: 'Regional Business Manager', hierarchy_level: 4, status: 'active' },
-      { role_name: 'ABM', short_name: 'ABM', description: 'Area Business Manager', hierarchy_level: 3, status: 'active' },
-      { role_name: 'TBM', short_name: 'TBM', description: 'Territory Business Manager', hierarchy_level: 2, status: 'active' },
-      { role_name: 'MR', short_name: 'MR', description: 'Medical Representative - Field user', hierarchy_level: 1, status: 'active' },
-      { role_name: 'Billing User', short_name: 'Billing', description: 'Invoice handling', hierarchy_level: 2, status: 'active' }
-    ]);
-    console.log(`✅ Created ${roles.length} roles`);
+    console.log('👤 Checking roles...');
+    let roles = await Role.findAll();
+    if (roles.length === 0) {
+      roles = await Role.bulkCreate([
+        { role_name: 'Admin', short_name: 'Admin', description: 'Full system control', hierarchy_level: 10, status: 'active' },
+        { role_name: 'HR', short_name: 'HR', description: 'Salary & employee management', hierarchy_level: 8, status: 'active' },
+        { role_name: 'NSM', short_name: 'NSM', description: 'National Sales Manager', hierarchy_level: 6, status: 'active' },
+        { role_name: 'RBM', short_name: 'RBM', description: 'Regional Business Manager', hierarchy_level: 4, status: 'active' },
+        { role_name: 'ABM', short_name: 'ABM', description: 'Area Business Manager', hierarchy_level: 3, status: 'active' },
+        { role_name: 'TBM', short_name: 'TBM', description: 'Territory Business Manager', hierarchy_level: 2, status: 'active' },
+        { role_name: 'MR', short_name: 'MR', description: 'Medical Representative - Field user', hierarchy_level: 1, status: 'active' },
+        { role_name: 'Billing User', short_name: 'Billing', description: 'Invoice handling', hierarchy_level: 2, status: 'active' }
+      ]);
+      console.log(`✅ Created ${roles.length} roles`);
+    } else {
+      console.log(`✅ ${roles.length} roles already exist`);
+    }
 
     // ==================== 2. PERMISSIONS (RBAC) ====================
     console.log('🔐 Creating permissions...');
@@ -122,31 +127,41 @@ async function seedExpenseAndRoles() {
     console.log('✅ Reporting hierarchy set');
 
     // ==================== 5. EXPENSE TYPES (from document) ====================
-    console.log('💰 Creating expense types...');
-    const expenseTypes = await ExpenseType.bulkCreate([
-      { expense_type: 'Daily Allowance', short_name: 'DA', description: 'Daily allowance for field work', status: 'active' },
-      { expense_type: 'Travel Allowance', short_name: 'TA', description: 'Travel allowance based on distance', status: 'active' },
-      { expense_type: 'Out-station Allowance', short_name: 'OA', description: 'Allowance for out-station travel', status: 'active' },
-      { expense_type: 'Hill Station Allowance', short_name: 'HA', description: 'Additional allowance for hill station areas', status: 'active' },
-      { expense_type: 'Meeting Allowance', short_name: 'MA', description: 'Allowance for attending meetings', status: 'active' },
-      { expense_type: 'Mobile Allowance', short_name: 'MobA', description: 'Monthly mobile expense allowance', status: 'active' },
-      { expense_type: 'Stationary Allowance', short_name: 'StnA', description: 'Monthly stationary expense allowance', status: 'active' },
-      { expense_type: 'Accommodation', short_name: 'Accom', description: 'Hotel/lodging expense', status: 'active' },
-      { expense_type: 'Miscellaneous', short_name: 'Misc', description: 'Other miscellaneous expenses', status: 'active' }
-    ]);
-    console.log(`✅ Created ${expenseTypes.length} expense types`);
+    console.log('💰 Checking expense types...');
+    let expenseTypes = await ExpenseType.findAll();
+    if (expenseTypes.length === 0) {
+      expenseTypes = await ExpenseType.bulkCreate([
+        { expense_type: 'Daily Allowance', short_name: 'DA', description: 'Daily allowance for field work', status: 'active' },
+        { expense_type: 'Travel Allowance', short_name: 'TA', description: 'Travel allowance based on distance', status: 'active' },
+        { expense_type: 'Out-station Allowance', short_name: 'OA', description: 'Allowance for out-station travel', status: 'active' },
+        { expense_type: 'Hill Station Allowance', short_name: 'HA', description: 'Additional allowance for hill station areas', status: 'active' },
+        { expense_type: 'Meeting Allowance', short_name: 'MA', description: 'Allowance for attending meetings', status: 'active' },
+        { expense_type: 'Mobile Allowance', short_name: 'MobA', description: 'Monthly mobile expense allowance', status: 'active' },
+        { expense_type: 'Stationary Allowance', short_name: 'StnA', description: 'Monthly stationary expense allowance', status: 'active' },
+        { expense_type: 'Accommodation', short_name: 'Accom', description: 'Hotel/lodging expense', status: 'active' },
+        { expense_type: 'Miscellaneous', short_name: 'Misc', description: 'Other miscellaneous expenses', status: 'active' }
+      ]);
+      console.log(`✅ Created ${expenseTypes.length} expense types`);
+    } else {
+      console.log(`✅ ${expenseTypes.length} expense types already exist`);
+    }
 
     // ==================== 6. TRAVEL MODES (from document) ====================
-    console.log('🚌 Creating travel modes...');
-    const travelModes = await TravelMode.bulkCreate([
-      { travel_type: 'Bus', short_name: 'BUS', description: 'Bus travel - show entry amount', requires_distance: false, status: 'active' },
-      { travel_type: 'Train 3rd Class', short_name: 'Train', description: 'Train 3rd class ticket - show entry amount', requires_distance: false, status: 'active' },
-      { travel_type: 'Own Vehicle', short_name: 'Own', description: 'Personal vehicle - calculate TA from distance and fare rate', requires_distance: true, status: 'active' },
-      { travel_type: 'Auto', short_name: 'Auto', description: 'Auto rickshaw - show entry amount', requires_distance: false, status: 'active' },
-      { travel_type: 'Taxi/Cab', short_name: 'Taxi', description: 'Taxi or cab - show entry amount', requires_distance: false, status: 'active' },
-      { travel_type: 'Flight', short_name: 'Flight', description: 'Air travel - show entry amount', requires_distance: false, status: 'active' }
-    ]);
-    console.log(`✅ Created ${travelModes.length} travel modes`);
+    console.log('🚌 Checking travel modes...');
+    let travelModes = await TravelMode.findAll();
+    if (travelModes.length === 0) {
+      travelModes = await TravelMode.bulkCreate([
+        { travel_type: 'Bus', short_name: 'BUS', description: 'Bus travel - show entry amount', requires_distance: false, status: 'active' },
+        { travel_type: 'Train 3rd Class', short_name: 'Train', description: 'Train 3rd class ticket - show entry amount', requires_distance: false, status: 'active' },
+        { travel_type: 'Own Vehicle', short_name: 'Own', description: 'Personal vehicle - calculate TA from distance and fare rate', requires_distance: true, status: 'active' },
+        { travel_type: 'Auto', short_name: 'Auto', description: 'Auto rickshaw - show entry amount', requires_distance: false, status: 'active' },
+        { travel_type: 'Taxi/Cab', short_name: 'Taxi', description: 'Taxi or cab - show entry amount', requires_distance: false, status: 'active' },
+        { travel_type: 'Flight', short_name: 'Flight', description: 'Air travel - show entry amount', requires_distance: false, status: 'active' }
+      ]);
+      console.log(`✅ Created ${travelModes.length} travel modes`);
+    } else {
+      console.log(`✅ ${travelModes.length} travel modes already exist`);
+    }
 
     // ==================== 7. STANDARD FARE CHART (from document mock data) ====================
     console.log('📊 Creating standard fare charts...');
