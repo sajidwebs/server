@@ -3,111 +3,50 @@ const router = express.Router();
 const { Projection } = require('../models');
 const { authenticate } = require('../middleware/auth');
 
-// Get all projections for a user
+// Helper: check if user is manager or admin (can see all data)
+const canSeeAllData = (user) => {
+  if (!user) return false;
+  const role = user.role?.toLowerCase() || '';
+  return role === 'admin' || role.includes('manager') || role.includes('nsm') || role.includes('rbm') || role.includes('abm') || role.includes('tbm');
+};
+
+// Get all projections
 router.get('/', authenticate, async (req, res) => {
   try {
     const { userId, month, year } = req.query;
-
-    // Build where clause
     const whereClause = {};
 
-    // If user is admin and no specific userId is provided, get all projections
-    // Otherwise, filter by userId (admin can specify userId to filter, regular users only see their own)
-    if (req.user.role === 'admin' && !userId) {
-      // Admin gets all projections when no userId is specified
-    } else {
-      // Regular users can only see their own projections, or admin can filter by specific userId
-      whereClause.userId = userId || req.user.id;
+    // Managers/admins see all data, regular users see only their own
+    if (!canSeeAllData(req.user) && !userId) {
+      whereClause.userId = req.user.id;
+    } else if (userId) {
+      whereClause.userId = userId;
     }
 
-    // If month is provided, filter by month
-    if (month) {
-      whereClause.month = month;
-    }
-
-    // If year is provided, filter by year
-    if (year) {
-      whereClause.year = year;
-    }
+    if (month) whereClause.month = month;
+    if (year) whereClause.year = year;
 
     const projections = await Projection.findAll({
       where: whereClause,
       order: [['year', 'DESC'], ['month', 'DESC']]
     });
 
-    res.json({
-      message: 'Projections retrieved successfully',
-      projections
-    });
+    res.json({ message: 'Projections retrieved successfully', projections });
   } catch (error) {
-    console.error('Get projections error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
-  }
-});
-
-// Get projection by ID
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const projection = await Projection.findByPk(req.params.id);
-    
-    if (!projection) {
-      return res.status(404).json({ 
-        message: 'Projection not found' 
-      });
-    }
-    
-    // Check if user owns this projection or is admin
-    if (projection.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: 'Access denied. You can only view your own projections.' 
-      });
-    }
-    
-    res.json({
-      message: 'Projection retrieved successfully',
-      projection
-    });
-  } catch (error) {
-    console.error('Get projection error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Error fetching projections:', error);
+    res.status(500).json({ message: 'Error fetching projections' });
   }
 });
 
 // Create new projection
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { month, year, productId, productName, projectedQuantity, projectedAmount } = req.body;
-    
-    // Validate required fields
-    if (!month || !year || !productName || !projectedQuantity || !projectedAmount) {
-      return res.status(400).json({ 
-        message: 'Month, year, product name, projected quantity, and projected amount are required' 
-      });
-    }
-    
-    const projection = await Projection.create({
-      userId: req.user.id,
-      month,
-      year,
-      productId,
-      productName,
-      projectedQuantity,
-      projectedAmount
-    });
-    
-    res.status(201).json({
-      message: 'Projection created successfully',
-      projection
-    });
+    const projectionData = { ...req.body, userId: req.body.userId || req.user.id };
+    const newProjection = await Projection.create(projectionData);
+    res.status(201).json({ message: 'Projection created successfully', projection: newProjection });
   } catch (error) {
-    console.error('Create projection error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Error creating projection:', error);
+    res.status(500).json({ message: 'Error creating projection' });
   }
 });
 
@@ -115,42 +54,12 @@ router.post('/', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const projection = await Projection.findByPk(req.params.id);
-    
-    if (!projection) {
-      return res.status(404).json({ 
-        message: 'Projection not found' 
-      });
-    }
-    
-    // Check if user owns this projection or is admin
-    if (projection.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: 'Access denied. You can only update your own projections.' 
-      });
-    }
-    
-    const { month, year, productId, productName, projectedQuantity, projectedAmount, actualQuantity, actualAmount } = req.body;
-    
-    await projection.update({
-      month,
-      year,
-      productId,
-      productName,
-      projectedQuantity,
-      projectedAmount,
-      actualQuantity,
-      actualAmount
-    });
-    
-    res.json({
-      message: 'Projection updated successfully',
-      projection
-    });
+    if (!projection) return res.status(404).json({ message: 'Projection not found' });
+    await projection.update(req.body);
+    res.json({ message: 'Projection updated successfully', projection });
   } catch (error) {
-    console.error('Update projection error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Error updating projection:', error);
+    res.status(500).json({ message: 'Error updating projection' });
   }
 });
 
@@ -158,30 +67,12 @@ router.put('/:id', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const projection = await Projection.findByPk(req.params.id);
-    
-    if (!projection) {
-      return res.status(404).json({ 
-        message: 'Projection not found' 
-      });
-    }
-    
-    // Check if user owns this projection or is admin
-    if (projection.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: 'Access denied. You can only delete your own projections.' 
-      });
-    }
-    
+    if (!projection) return res.status(404).json({ message: 'Projection not found' });
     await projection.destroy();
-    
-    res.json({
-      message: 'Projection deleted successfully'
-    });
+    res.json({ message: 'Projection deleted successfully' });
   } catch (error) {
-    console.error('Delete projection error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Error deleting projection:', error);
+    res.status(500).json({ message: 'Error deleting projection' });
   }
 });
 

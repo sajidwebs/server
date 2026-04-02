@@ -3,112 +3,78 @@ const router = express.Router();
 const { Sale } = require('../models');
 const { authenticate } = require('../middleware/auth');
 
-// Get all sales for a user
+// Helper: check if user is manager or admin (can see all data)
+const canSeeAllData = (user) => {
+  if (!user) return false;
+  const role = user.role?.toLowerCase() || '';
+  return role === 'admin' || role.includes('manager') || role.includes('nsm') || role.includes('rbm') || role.includes('abm') || role.includes('tbm');
+};
+
+// Get all sales
 router.get('/', authenticate, async (req, res) => {
   try {
     const { userId, date, chemistId } = req.query;
-
-    // Build where clause
     const whereClause = {};
 
-    // If user is admin and no specific userId is provided, get all sales
-    // Otherwise, filter by userId (admin can specify userId to filter, regular users only see their own)
-    if (req.user.role === 'admin' && !userId) {
-      // Admin gets all sales when no userId is specified
-    } else {
-      // Regular users can only see their own sales, or admin can filter by specific userId
-      whereClause.userId = userId || req.user.id;
+    // Managers/admins see all data, regular users see only their own
+    if (!canSeeAllData(req.user) && !userId) {
+      whereClause.userId = req.user.id;
+    } else if (userId) {
+      whereClause.userId = userId;
     }
 
-    // If date is provided, filter by date
-    if (date) {
-      whereClause.date = date;
-    }
-
-    // If chemistId is provided, filter by chemistId
-    if (chemistId) {
-      whereClause.chemistId = chemistId;
-    }
+    if (date) whereClause.date = date;
+    if (chemistId) whereClause.chemistId = chemistId;
 
     const sales = await Sale.findAll({
       where: whereClause,
       order: [['date', 'DESC']]
     });
 
-    res.json({
-      message: 'Sales retrieved successfully',
-      sales
-    });
+    res.json({ message: 'Sales retrieved successfully', sales });
   } catch (error) {
-    console.error('Get sales error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    console.error('Error fetching sales:', error);
+    res.status(500).json({ message: 'Error fetching sales' });
   }
 });
 
-// Get sale by ID
-router.get('/:id', authenticate, async (req, res) => {
+// Get sales report by date range
+router.get('/report', authenticate, async (req, res) => {
   try {
-    const sale = await Sale.findByPk(req.params.id);
-    
-    if (!sale) {
-      return res.status(404).json({ 
-        message: 'Sale not found' 
-      });
+    const { startDate, endDate } = req.query;
+    const whereClause = {};
+
+    if (!canSeeAllData(req.user)) {
+      whereClause.userId = req.user.id;
     }
-    
-    // Check if user owns this sale or is admin
-    if (sale.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: 'Access denied. You can only view your own sales.' 
-      });
+
+    if (startDate && endDate) {
+      whereClause.date = { [Op.between]: [startDate, endDate] };
     }
-    
+
+    const sales = await Sale.findAll({ where: whereClause, order: [['date', 'DESC']] });
+    const totalAmount = sales.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
+    const totalQuantity = sales.reduce((sum, s) => sum + (s.quantity || 0), 0);
+
     res.json({
-      message: 'Sale retrieved successfully',
-      sale
+      sales,
+      summary: { totalAmount, totalQuantity, transactionCount: sales.length }
     });
   } catch (error) {
-    console.error('Get sale error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Sales report error:', error);
+    res.status(500).json({ message: 'Error generating sales report' });
   }
 });
 
 // Create new sale
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { productId, productName, quantity, price, totalAmount, chemistId, date } = req.body;
-    
-    // Validate required fields
-    if (!productName || !quantity || !price || !totalAmount || !date) {
-      return res.status(400).json({ 
-        message: 'Product name, quantity, price, total amount, and date are required' 
-      });
-    }
-    
-    const sale = await Sale.create({
-      userId: req.user.id,
-      productId,
-      productName,
-      quantity,
-      price,
-      totalAmount,
-      chemistId,
-      date
-    });
-    
-    res.status(201).json({
-      message: 'Sale created successfully',
-      sale
-    });
+    const saleData = { ...req.body, userId: req.body.userId || req.user.id };
+    const newSale = await Sale.create(saleData);
+    res.status(201).json({ message: 'Sale created successfully', sale: newSale });
   } catch (error) {
-    console.error('Create sale error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Error creating sale:', error);
+    res.status(500).json({ message: 'Error creating sale' });
   }
 });
 
@@ -116,41 +82,12 @@ router.post('/', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const sale = await Sale.findByPk(req.params.id);
-    
-    if (!sale) {
-      return res.status(404).json({ 
-        message: 'Sale not found' 
-      });
-    }
-    
-    // Check if user owns this sale or is admin
-    if (sale.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: 'Access denied. You can only update your own sales.' 
-      });
-    }
-    
-    const { productId, productName, quantity, price, totalAmount, chemistId, date } = req.body;
-    
-    await sale.update({
-      productId,
-      productName,
-      quantity,
-      price,
-      totalAmount,
-      chemistId,
-      date
-    });
-    
-    res.json({
-      message: 'Sale updated successfully',
-      sale
-    });
+    if (!sale) return res.status(404).json({ message: 'Sale not found' });
+    await sale.update(req.body);
+    res.json({ message: 'Sale updated successfully', sale });
   } catch (error) {
-    console.error('Update sale error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Error updating sale:', error);
+    res.status(500).json({ message: 'Error updating sale' });
   }
 });
 
@@ -158,30 +95,12 @@ router.put('/:id', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const sale = await Sale.findByPk(req.params.id);
-    
-    if (!sale) {
-      return res.status(404).json({ 
-        message: 'Sale not found' 
-      });
-    }
-    
-    // Check if user owns this sale or is admin
-    if (sale.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: 'Access denied. You can only delete your own sales.' 
-      });
-    }
-    
+    if (!sale) return res.status(404).json({ message: 'Sale not found' });
     await sale.destroy();
-    
-    res.json({
-      message: 'Sale deleted successfully'
-    });
+    res.json({ message: 'Sale deleted successfully' });
   } catch (error) {
-    console.error('Delete sale error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    console.error('Error deleting sale:', error);
+    res.status(500).json({ message: 'Error deleting sale' });
   }
 });
 
