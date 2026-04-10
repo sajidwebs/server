@@ -46,6 +46,14 @@ const StandardFareChart = require('./StandardFareChart');
 const Expense = require('./Expense');
 const ExpenseAddition = require('./ExpenseAddition');
 
+// System Setup Models (Rule Engine)
+const CallAverageSetup = require('./CallAverageSetup');
+const CoverageSetup = require('./CoverageSetup');
+const WorkTypeSetup = require('./WorkTypeSetup');
+const WorkTypeMaster = require('./WorkTypeMaster');
+const LeavePolicyMaster = require('./LeavePolicyMaster');
+const UserLeaveBalance = require('./UserLeaveBalance');
+
 // ==================== RELATIONSHIPS ====================
 
 // User - Activity
@@ -544,6 +552,63 @@ ExpenseAddition.belongsTo(Expense, {
   as: 'expense'
 });
 
+// ==================== SYSTEM SETUP MODELS RELATIONSHIPS ====================
+
+// User - CallAverageSetup
+User.hasMany(CallAverageSetup, {
+  foreignKey: 'created_by',
+  as: 'callAverageSetups'
+});
+
+CallAverageSetup.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+// User - CoverageSetup
+User.hasMany(CoverageSetup, {
+  foreignKey: 'created_by',
+  as: 'coverageSetups'
+});
+
+CoverageSetup.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+// User - WorkTypeSetup
+User.hasMany(WorkTypeSetup, {
+  foreignKey: 'created_by',
+  as: 'workTypeSetups'
+});
+
+WorkTypeSetup.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+// User - LeavePolicyMaster
+User.hasMany(LeavePolicyMaster, {
+  foreignKey: 'created_by',
+  as: 'leavePolicies'
+});
+
+LeavePolicyMaster.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+// User - UserLeaveBalance
+User.hasMany(UserLeaveBalance, {
+  foreignKey: 'user_id',
+  as: 'leaveBalances'
+});
+
+UserLeaveBalance.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user'
+});
+
 // ==================== EXPORT MODELS ====================
 
 module.exports = {
@@ -588,5 +653,12 @@ module.exports = {
   TravelMode,
   StandardFareChart,
   Expense,
-  ExpenseAddition
+  ExpenseAddition,
+  // System Setup Models (Rule Engine)
+  CallAverageSetup,
+  CoverageSetup,
+  WorkTypeSetup,
+  WorkTypeMaster,
+  LeavePolicyMaster,
+  UserLeaveBalance
 };

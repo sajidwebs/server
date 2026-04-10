@@ -171,4 +171,55 @@ router.post('/admin-override', authenticate, async (req, res) => {
   }
 });
 
+// Get compliance status for a user (integrated with System Setup)
+router.get('/compliance/:userId', authenticate, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { month, year } = req.query;
+
+    const callAvgResult = await BusinessRules.validateCallAverage(parseInt(userId), month, year);
+    const coverageResult = await BusinessRules.validateCoverage(parseInt(userId), month, year);
+    const workTypeResult = await BusinessRules.validateWorkType(parseInt(userId), month, year);
+    const expenseResult = await BusinessRules.canClaimExpense(parseInt(userId));
+    const incentiveResult = await BusinessRules.canReceiveIncentive(parseInt(userId));
+
+    res.json({
+      userId: parseInt(userId),
+      callAverage: callAvgResult,
+      coverage: coverageResult,
+      workType: workTypeResult,
+      expenseEligibility: expenseResult,
+      incentiveEligibility: incentiveResult,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get compliance error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Check if user can claim expense
+router.get('/expense-eligibility/:userId', authenticate, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await BusinessRules.canClaimExpense(parseInt(userId));
+    res.json(result);
+  } catch (error) {
+    console.error('Check expense eligibility error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Check if user can receive incentive
+router.get('/incentive-eligibility/:userId', authenticate, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await BusinessRules.canReceiveIncentive(parseInt(userId));
+    res.json(result);
+  } catch (error) {
+    console.error('Check incentive eligibility error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports = router;

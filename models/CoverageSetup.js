@@ -1,0 +1,66 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const CoverageSetup = sequelize.define('CoverageSetup', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  designation: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    comment: 'MR, ABM, RBM, ZBM, etc.'
+  },
+  doctor_list_type: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'Core',
+    comment: 'Core or Secondary doctor list'
+  },
+  monthly_coverage: {
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 90.00,
+    comment: 'Monthly coverage percentage target'
+  },
+  quarterly_coverage: {
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 100.00,
+    comment: 'Quarterly coverage percentage target'
+  },
+  yearly_coverage: {
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 100.00,
+    comment: 'Yearly coverage percentage target'
+  },
+  effective_from: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    comment: 'Effective date from which this setup is valid'
+  },
+  effective_to: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    comment: 'Effective date until which this setup is valid'
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  created_by: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  }
+}, {
+  timestamps: true,
+  tableName: 'coverage_setup'
+});
+
+module.exports = CoverageSetup;

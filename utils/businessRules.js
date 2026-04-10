@@ -1,7 +1,11 @@
 /**
  * Business Rules Engine for PAMS Application
  * Implements time-based locking and validation logic
+ * Also integrates with System Setup for compliance validation
  */
+
+const { Op } = require('sequelize');
+const { CallAverageSetup, CoverageSetup, WorkTypeSetup, LeavePolicyMaster, UserLeaveBalance, Activity, Expense } = require('../models');
 
 class BusinessRules {
   /**
@@ -195,6 +199,233 @@ class BusinessRules {
     }
 
     return violations;
+  }
+
+  /**
+   * Validate user call average compliance
+   * Based on System Setup - Call Average
+   */
+  static async validateCallAverage(userId, month = null, year = null) {
+    try {
+      const currentMonth = month || new Date().getMonth() + 1;
+      const currentYear = year || new Date().getFullYear();
+      
+      // Get user designation
+      const User = require('../models/User');
+      const user = await User.findByPk(userId);
+      if (!user) return { isValid: true, percentage: 100 };
+
+      const designation = user.employeeType || user.role;
+      
+      // Get call average setup for designation
+      const setup = await CallAverageSetup.findOne({
+        where: {
+          designation,
+          isActive: true,
+          effective_from: { [Op.lte]: new Date() },
+          [Op.or]: [
+            { effective_to: null },
+            { effective_to: { [Op.gte]: new Date() } }
+          ]
+        }
+      });
+
+      if (!setup) return { isValid: true, percentage: 100, message: 'No setup configured' };
+
+      // Get actual calls from activities
+      const startDate = new Date(currentYear, currentMonth - 1, 1);
+      const endDate = new Date(currentYear, currentMonth, 0);
+
+      const callCount = await Activity.count({
+        where: {
+          userId,
+          date: { [Op.between]: [startDate, endDate] },
+          type: 'doctor_call'
+        }
+      });
+
+      const requiredCalls = setup.monthly_calls || (setup.daily_calls * setup.min_field_working_days);
+      const percentage = (callCount / requiredCalls) * 100;
+
+      return {
+        isValid: percentage >= setup.warning_threshold,
+        percentage: percentage.toFixed(1),
+        required: requiredCalls,
+        actual: callCount,
+        warningThreshold: setup.warning_threshold,
+        alertThreshold: setup.alert_threshold,
+        status: percentage >= setup.warning_threshold ? 'OK' : (percentage >= setup.alert_threshold ? 'WARNING' : 'ALERT'),
+        flags: percentage < setup.warning_threshold ? 1 : (percentage < setup.alert_threshold ? 1 : 0)
+      };
+    } catch (error) {
+      console.error('validateCallAverage error:', error);
+      return { isValid: true, percentage: 100 };
+    }
+  }
+
+  /**
+   * Validate user doctor coverage compliance
+   * Based on System Setup - Coverage
+   */
+  static async validateCoverage(userId, month = null, year = null) {
+    try {
+      const currentMonth = month || new Date().getMonth() + 1;
+      const currentYear = year || new Date().getFullYear();
+
+      const User = require('../models/User');
+      const user = await User.findByPk(userId);
+      if (!user) return { isValid: true, percentage: 100 };
+
+      const designation = user.employeeType || user.role;
+
+      const setup = await CoverageSetup.findOne({
+        where: {
+          designation,
+          doctor_list_type: 'Core',
+          isActive: true
+        }
+      });
+
+      if (!setup) return { isValid: true, percentage: 100, message: 'No setup configured' };
+
+      // Get total doctors assigned to user and visited doctors
+      const Doctor = require('../models/Doctor');
+      const { sequelize } = require('../config/database');
+
+      const totalDoctors = await Doctor.count({
+        where: { hq_id: user.hq_id }
+      });
+
+      const startDate = new Date(currentYear, currentMonth - 1, 1);
+      const endDate = new Date(currentYear, currentMonth, 0);
+
+      const visitedDoctors = await Activity.count({
+        where: {
+          userId,
+          date: { [Op.between]: [startDate, endDate] },
+          type: 'doctor_call'
+        },
+        distinct: true,
+        col: 'doctorId'
+      });
+
+      const percentage = totalDoctors > 0 ? (visitedDoctors / totalDoctors) * 100 : 100;
+
+      return {
+        isValid: percentage >= setup.monthly_coverage,
+        percentage: percentage.toFixed(1),
+        visited: visitedDoctors,
+        total: totalDoctors,
+        target: setup.monthly_coverage,
+        status: percentage >= setup.monthly_coverage ? 'OK' : 'LOW'
+      };
+    } catch (error) {
+      console.error('validateCoverage error:', error);
+      return { isValid: true, percentage: 100 };
+    }
+  }
+
+  /**
+   * Validate work type compliance (field work days)
+   */
+  static async validateWorkType(userId, month = null, year = null) {
+    try {
+      const currentMonth = month || new Date().getMonth() + 1;
+      const currentYear = year || new Date().getFullYear();
+
+      const User = require('../models/User');
+      const user = await User.findByPk(userId);
+      if (!user) return { isValid: true };
+
+      const designation = user.employeeType || user.role;
+
+      const setup = await WorkTypeSetup.findOne({
+        where: { designation, isActive: true }
+      });
+
+      if (!setup) return { isValid: true, message: 'No setup configured' };
+
+      // Count field work days from expenses (based on working_status)
+      const startDate = new Date(currentYear, currentMonth - 1, 1);
+      const endDate = new Date(currentYear, currentMonth, 0);
+
+      const fieldWorkDays = await Expense.count({
+        where: {
+          user_id: userId,
+          date: { [Op.between]: [startDate, endDate] },
+          working_status: 'Working'
+        }
+      });
+
+      const isValid = fieldWorkDays >= setup.field_work_days;
+
+      return {
+        isValid,
+        fieldWorkDays,
+        required: setup.field_work_days,
+        mandatory: setup.mandatory_field_days,
+        status: isValid ? 'OK' : 'INSUFFICIENT'
+      };
+    } catch (error) {
+      console.error('validateWorkType error:', error);
+      return { isValid: true };
+    }
+  }
+
+  /**
+   * Check if expense claim should be blocked based on compliance
+   * Per document: "Block expense claim if low coverage below 50%"
+   */
+  static async canClaimExpense(userId) {
+    try {
+      const coverageValidation = await this.validateCoverage(userId);
+      
+      if (coverageValidation.percentage < 50) {
+        return {
+          canClaim: false,
+          reason: `Coverage is ${coverageValidation.percentage}%, below 50% threshold. Cannot claim expenses.`
+        };
+      }
+
+      const callAvgValidation = await this.validateCallAverage(userId);
+      
+      // Block if daily call average is below 8 (calculated monthly)
+      const dailyAvg = callAvgValidation.actual / 20; // Assuming 20 working days
+      if (dailyAvg < 8) {
+        return {
+          canClaim: false,
+          reason: `Daily call average is ${dailyAvg.toFixed(1)}, below 8 threshold. Cannot claim expenses.`
+        };
+      }
+
+      return { canClaim: true, reason: 'Expense claim allowed' };
+    } catch (error) {
+      console.error('canClaimExpense error:', error);
+      return { canClaim: true, reason: 'Error checking compliance' };
+    }
+  }
+
+  /**
+   * Check if incentive should be blocked
+   * Per document: "Block incentive if call avg below 10 < threshold"
+   */
+  static async canReceiveIncentive(userId) {
+    try {
+      const callAvgValidation = await this.validateCallAverage(userId);
+      
+      const dailyAvg = callAvgValidation.actual / 20;
+      if (dailyAvg < 10) {
+        return {
+          canReceive: false,
+          reason: `Call average is below 10 threshold. Incentive blocked.`
+        };
+      }
+
+      return { canReceive: true, reason: 'Incentive eligible' };
+    } catch (error) {
+      console.error('canReceiveIncentive error:', error);
+      return { canReceive: true, reason: 'Error checking eligibility' };
+    }
   }
 }
 
