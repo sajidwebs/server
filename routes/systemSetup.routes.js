@@ -9,7 +9,7 @@ const { Op } = require('sequelize');
 router.get('/call-average', async (req, res) => {
   try {
     const setups = await CallAverageSetup.findAll({
-      where: { isActive: true },
+      where: { is_active: true },
       order: [['designation', 'ASC'], ['effective_from', 'DESC']]
     });
     res.json(setups);
@@ -108,7 +108,7 @@ router.delete('/call-average/:id', async (req, res) => {
     if (!setup) {
       return res.status(404).json({ message: 'Call average setup not found' });
     }
-    await setup.update({ isActive: false });
+    await setup.update({ is_active: false });
     res.json({ message: 'Call average setup deactivated' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -121,7 +121,7 @@ router.delete('/call-average/:id', async (req, res) => {
 router.get('/coverage', async (req, res) => {
   try {
     const setups = await CoverageSetup.findAll({
-      where: { isActive: true },
+      where: { is_active: true },
       order: [['designation', 'ASC'], ['doctor_list_type', 'ASC'], ['effective_from', 'DESC']]
     });
     res.json(setups);
@@ -173,7 +173,7 @@ router.delete('/coverage/:id', async (req, res) => {
     if (!setup) {
       return res.status(404).json({ message: 'Coverage setup not found' });
     }
-    await setup.update({ isActive: false });
+    await setup.update({ is_active: false });
     res.json({ message: 'Coverage setup deactivated' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -186,7 +186,7 @@ router.delete('/coverage/:id', async (req, res) => {
 router.get('/work-type', async (req, res) => {
   try {
     const setups = await WorkTypeSetup.findAll({
-      where: { isActive: true },
+      where: { is_active: true },
       order: [['designation', 'ASC'], ['effective_from', 'DESC']]
     });
     res.json(setups);
@@ -199,7 +199,7 @@ router.get('/work-type', async (req, res) => {
 router.get('/work-type-master', async (req, res) => {
   try {
     const types = await WorkTypeMaster.findAll({
-      where: { isActive: true },
+      where: { is_active: true },
       order: [['type_name', 'ASC']]
     });
     res.json(types);
@@ -282,7 +282,7 @@ router.delete('/work-type/:id', async (req, res) => {
     if (!setup) {
       return res.status(404).json({ message: 'Work type setup not found' });
     }
-    await setup.update({ isActive: false });
+    await setup.update({ is_active: false });
     res.json({ message: 'Work type setup deactivated' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -295,7 +295,7 @@ router.delete('/work-type/:id', async (req, res) => {
 router.get('/leave-policy', async (req, res) => {
   try {
     const policies = await LeavePolicyMaster.findAll({
-      where: { isActive: true },
+      where: { is_active: true },
       order: [['leave_type', 'ASC']]
     });
     res.json(policies);
@@ -349,7 +349,7 @@ router.delete('/leave-policy/:id', async (req, res) => {
     if (!policy) {
       return res.status(404).json({ message: 'Leave policy not found' });
     }
-    await policy.update({ isActive: false });
+    await policy.update({ is_active: false });
     res.json({ message: 'Leave policy deactivated' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -385,7 +385,7 @@ router.post('/leave-balance/initialize', async (req, res) => {
     const { user_id, year, leavePolicies } = req.body;
     
     // Get all active leave policies
-    const policies = leavePolicies || await LeavePolicyMaster.findAll({ where: { isActive: true } });
+    const policies = leavePolicies || await LeavePolicyMaster.findAll({ where: { is_active: true } });
     
     const balances = [];
     for (const policy of policies) {
@@ -461,7 +461,7 @@ router.get('/compliance/:userId', async (req, res) => {
     const callAvgSetup = await CallAverageSetup.findOne({
       where: { 
         designation,
-        isActive: true,
+        is_active: true,
         effective_from: { [Op.lte]: new Date() },
         [Op.or]: [
           { effective_to: null },
@@ -474,14 +474,14 @@ router.get('/compliance/:userId', async (req, res) => {
       where: {
         designation,
         doctor_list_type: 'Core',
-        isActive: true
+        is_active: true
       }
     });
     
     const workTypeSetup = await WorkTypeSetup.findOne({
       where: {
         designation,
-        isActive: true
+        is_active: true
       }
     });
     
@@ -507,7 +507,7 @@ router.get('/compliance', async (req, res) => {
   try {
     const { designation, hq_id } = req.query;
     
-    const where = { isActive: true };
+    const where = { is_active: true };
     if (designation) {
       where.employeeType = designation;
     }
@@ -529,16 +529,16 @@ router.get('/compliance', async (req, res) => {
       const callAvgSetup = await CallAverageSetup.findOne({
         where: { 
           designation,
-          isActive: true
+          is_active: true
         }
       });
       
       const coverageSetup = await CoverageSetup.findOne({
-        where: { designation, doctor_list_type: 'Core', isActive: true }
+        where: { designation, doctor_list_type: 'Core', is_active: true }
       });
       
       const workTypeSetup = await WorkTypeSetup.findOne({
-        where: { designation, isActive: true }
+        where: { designation, is_active: true }
       });
       
       return {

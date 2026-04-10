@@ -48,7 +48,8 @@ const CoverageSetup = sequelize.define('CoverageSetup', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: true,
+    field: 'is_active'
   },
   created_by: {
     type: DataTypes.INTEGER,
@@ -60,7 +61,10 @@ const CoverageSetup = sequelize.define('CoverageSetup', {
   }
 }, {
   timestamps: true,
-  tableName: 'coverage_setup'
+  tableName: 'coverage_setup',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  underscored: true
 });
 
 module.exports = CoverageSetup;

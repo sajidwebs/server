@@ -72,7 +72,10 @@ const LeavePolicyMaster = sequelize.define('LeavePolicyMaster', {
   }
 }, {
   timestamps: true,
-  tableName: 'leave_policy_master'
+  tableName: 'leave_policy_master',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  underscored: true
 });
 
 module.exports = LeavePolicyMaster;

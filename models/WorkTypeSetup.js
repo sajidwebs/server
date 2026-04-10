@@ -59,7 +59,10 @@ const WorkTypeSetup = sequelize.define('WorkTypeSetup', {
   }
 }, {
   timestamps: true,
-  tableName: 'work_type_setup'
+  tableName: 'work_type_setup',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  underscored: true
 });
 
 module.exports = WorkTypeSetup;
