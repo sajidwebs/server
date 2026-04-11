@@ -2,7 +2,7 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 const DoctorSpecialty = sequelize.define('DoctorSpecialty', {
-  specialty_id: {
+  id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
@@ -27,19 +27,11 @@ const DoctorSpecialty = sequelize.define('DoctorSpecialty', {
   },
   created_by: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   },
   updated_by: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   }
 }, {
   tableName: 'doctor_specialties',

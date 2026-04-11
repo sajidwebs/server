@@ -21,55 +21,40 @@ const Doctor = sequelize.define('Doctor', {
       notEmpty: true
     }
   },
-  // Reference to Doctor Specialty Master (Constant Data)
+  // Reference to Doctor Class Master
+  class_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  // Reference to Doctor Specialty Master
   specialty_id: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'doctor_specialties',
-      key: 'specialty_id'
-    }
+    allowNull: true
   },
   // Keep legacy specialty field for backward compatibility
   specialty: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  // Reference to Doctor Category Master (Variable Data)
+  // Reference to Doctor Category Master
   category_id: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'doctor_categories',
-      key: 'category_id'
-    }
+    allowNull: true
   },
-  // Reference to Doctor Qualification Master (Constant Data)
+  // Reference to Doctor Qualification Master
   qualification_id: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'doctor_qualifications',
-      key: 'qualification_id'
-    }
+    allowNull: true
   },
   // Territory reference
   territory_id: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'territories',
-      key: 'id'
-    }
+    allowNull: true
   },
   // Headquarter reference
   hq_id: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'headquarters',
-      key: 'id'
-    }
+    allowNull: true
   },
   location: {
     type: DataTypes.STRING,
@@ -104,11 +89,7 @@ const Doctor = sequelize.define('Doctor', {
   },
   created_by: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   }
 }, {
   timestamps: true,

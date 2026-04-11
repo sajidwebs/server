@@ -27,19 +27,11 @@ const DoctorClass = sequelize.define('DoctorClass', {
   },
   created_by: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   },
   updated_by: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   }
 }, {
   tableName: 'doctor_classes',
