@@ -958,4 +958,71 @@ router.delete('/samples/:id', authenticate, authorize(['ADMIN']), async (req, re
   }
 });
 
+// ==================== SEED DATA ROUTES ====================
+
+// Seed doctors and chemists (Admin only)
+router.post('/seed-data', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Chemist } = require('../models');
+    
+    const doctorClasses = await DoctorClass.findAll({ where: { status: 'active' } });
+    const doctorCategories = await DoctorCategory.findAll({ where: { status: 'active' } });
+    const doctorSpecialties = await DoctorSpecialty.findAll({ where: { status: 'active' } });
+    const doctorQualifications = await DoctorQualification.findAll({ where: { status: 'active' } });
+    
+    // Create sample doctors if none exist
+    const existingDoctors = await Doctor.count();
+    if (existingDoctors === 0) {
+      const sampleDoctors = [
+        { firstName: 'Dr. Rajesh', lastName: 'Kumar', specialty_id: doctorSpecialties[0]?.id, category_id: doctorCategories[0]?.id, qualification_id: doctorQualifications[0]?.id, specialty: 'General Medicine', location: 'Mumbai', address: 'Medical Center, Mumbai', phone: '+91-9876543210', email: 'rajesh.kumar@email.com', isActive: true },
+        { firstName: 'Dr. Priya', lastName: 'Sharma', specialty_id: doctorSpecialties[1]?.id, category_id: doctorCategories[0]?.id, qualification_id: doctorQualifications[1]?.id, specialty: 'Cardiologist', location: 'Delhi', address: 'Heart Center, Delhi', phone: '+91-9876543211', email: 'priya.sharma@email.com', isActive: true },
+        { firstName: 'Dr. Amit', lastName: 'Singh', specialty_id: doctorSpecialties[2]?.id, category_id: doctorCategories[1]?.id, qualification_id: doctorQualifications[0]?.id, specialty: 'Orthopedic', location: 'Bangalore', address: 'Ortho Hospital, Bangalore', phone: '+91-9876543212', email: 'amit.singh@email.com', isActive: true }
+      ].filter(d => d.specialty_id !== undefined);
+      
+      await Doctor.bulkCreate(sampleDoctors);
+    }
+    
+    const existingChemists = await Chemist.count();
+    if (existingChemists === 0) {
+      const sampleChemists = [
+        { name: 'City Medical Store', location: 'Mumbai', address: 'Shop 12, Medical Market, Mumbai', phone: '+91-8765432101', email: 'citymedical@email.com', isActive: true },
+        { name: 'Apollo Pharmacy', location: 'Delhi', address: 'Shop 5, Apollo Hospital, Delhi', phone: '+91-8765432102', email: 'apollo@email.com', isActive: true },
+        { name: 'MedPlus', location: 'Bangalore', address: 'Shop 8, MedPlus Building, Bangalore', phone: '+91-8765432103', email: 'medplus@email.com', isActive: true }
+      ];
+      
+      await Chemist.bulkCreate(sampleChemists);
+    }
+    
+    const doctors = await Doctor.findAll();
+    const chemists = await Chemist.findAll();
+    
+    res.json({ 
+      message: 'Data seeded successfully',
+      doctorsCount: doctors.length,
+      chemistsCount: chemists.length
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get data counts
+router.get('/data-counts', authenticate, async (req, res) => {
+  try {
+    const doctorCount = await Doctor.count();
+    const chemistCount = await Chemist.count();
+    const hqCount = await Headquarter.count();
+    const territoryCount = await Territory.count();
+    
+    res.json({
+      doctors: doctorCount,
+      chemists: chemistCount,
+      headquarters: hqCount,
+      territories: territoryCount
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 module.exports = router;
