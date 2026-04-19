@@ -2,12 +2,45 @@ const express = require('express');
 const router = express.Router();
 const { CallAverageSetup, CoverageSetup, WorkTypeSetup, WorkTypeMaster, LeavePolicyMaster, UserLeaveBalance, User } = require('../models');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
+
+// Auto-migrate system setup tables before any query
+async function ensureSystemSetupColumns() {
+  try {
+    // Call Average Setup columns
+    await sequelize.query(`ALTER TABLE call_average_setup ADD COLUMN IF NOT EXISTS doctor_calls INTEGER DEFAULT 8`);
+    await sequelize.query(`ALTER TABLE call_average_setup ADD COLUMN IF NOT EXISTS chemist_calls INTEGER DEFAULT 3`);
+    
+    // Coverage Setup columns
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS doctor_warning DECIMAL(5,2) DEFAULT 90.00`);
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS chemist_warning DECIMAL(5,2) DEFAULT 100.00`);
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS doctor_alert DECIMAL(5,2) DEFAULT 70.00`);
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS chemist_alert DECIMAL(5,2) DEFAULT 90.00`);
+  } catch (e) {
+    // Ignore - columns may already exist
+  }
+}
 
 // ==================== CALL AVERAGE SETUP ====================
 
 // Get all call average setups
 router.get('/call-average', async (req, res) => {
   try {
+    await ensureSystemSetupColumns();
+    
+    // Seed default data if none exists
+    const count = await CallAverageSetup.count();
+    if (count === 0) {
+      await CallAverageSetup.bulkCreate([
+        { designation: 'MR', min_field_working_days: 20, daily_calls: 11, doctor_calls: 8, chemist_calls: 3, monthly_calls: 220, quarterly_calls: 660, yearly_calls: 2640, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'TBM', min_field_working_days: 18, daily_calls: 10, doctor_calls: 7, chemist_calls: 3, monthly_calls: 180, quarterly_calls: 540, yearly_calls: 2160, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'ABM', min_field_working_days: 15, daily_calls: 8, doctor_calls: 5, chemist_calls: 3, monthly_calls: 120, quarterly_calls: 360, yearly_calls: 1440, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'RBM', min_field_working_days: 12, daily_calls: 6, doctor_calls: 4, chemist_calls: 2, monthly_calls: 72, quarterly_calls: 216, yearly_calls: 864, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'ZBM', min_field_working_days: 10, daily_calls: 5, doctor_calls: 3, chemist_calls: 2, monthly_calls: 50, quarterly_calls: 150, yearly_calls: 600, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'NSM', min_field_working_days: 8, daily_calls: 4, doctor_calls: 2, chemist_calls: 2, monthly_calls: 32, quarterly_calls: 96, yearly_calls: 384, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true }
+      ]);
+    }
+    
     const setups = await CallAverageSetup.findAll({
       where: { is_active: true },
       order: [['designation', 'ASC'], ['effective_from', 'DESC']]
@@ -132,6 +165,21 @@ router.delete('/call-average/:id', async (req, res) => {
 // Get all coverage setups
 router.get('/coverage', async (req, res) => {
   try {
+    await ensureSystemSetupColumns();
+    
+    // Seed default data if none exists
+    const count = await CoverageSetup.count();
+    if (count === 0) {
+      await CoverageSetup.bulkCreate([
+        { designation: 'MR', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'TBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'ABM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'RBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'ZBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
+        { designation: 'NSM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true }
+      ]);
+    }
+    
     const setups = await CoverageSetup.findAll({
       where: { is_active: true },
       order: [['designation', 'ASC'], ['doctor_list_type', 'ASC'], ['effective_from', 'DESC']]
