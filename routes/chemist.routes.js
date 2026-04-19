@@ -3,10 +3,24 @@ const router = express.Router();
 const { Chemist, Sale } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const { validateChemist } = require('../middleware/validation');
+const sequelize = require('../config/database');
+
+// Auto-migrate chemists table before any query
+async function ensureChemistColumns() {
+  try {
+    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
+    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
+    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
+  } catch (e) {
+    // Ignore errors - columns may already exist
+  }
+}
 
 // Get all chemists
 router.get('/', authenticate, async (req, res) => {
   try {
+    await ensureChemistColumns();
+    
     const chemists = await Chemist.findAll({
       order: [['createdAt', 'DESC']]
     });

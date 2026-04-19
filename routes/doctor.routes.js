@@ -3,10 +3,28 @@ const router = express.Router();
 const { Doctor, Business, Sale } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const { validateDoctor } = require('../middleware/validation');
+const sequelize = require('../config/database');
+
+// Auto-migrate doctors table before any query
+async function ensureDoctorColumns() {
+  try {
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS class_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS specialty_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS category_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS qualification_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
+  } catch (e) {
+    // Ignore errors - columns may already exist
+  }
+}
 
 // Get all doctors
 router.get('/', authenticate, async (req, res) => {
   try {
+    await ensureDoctorColumns();
+    
     const doctors = await Doctor.findAll({
       order: [['createdAt', 'DESC']]
     });
