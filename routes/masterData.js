@@ -958,6 +958,33 @@ router.delete('/samples/:id', authenticate, authorize(['ADMIN']), async (req, re
   }
 });
 
+// ==================== MIGRATION ROUTES ====================
+
+// Migrate database schema (Admin only)
+router.post('/migrate', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const sequelize = require('../config/database');
+    
+    // Add columns one by one
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS class_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS specialty_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS category_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS qualification_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
+    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
+    
+    // Add chemist columns
+    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
+    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
+    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
+    
+    res.json({ message: 'Migration completed successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // ==================== SEED DATA ROUTES ====================
 
 // Seed doctors and chemists (Admin only)
