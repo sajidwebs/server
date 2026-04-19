@@ -22,7 +22,19 @@ const CallAverageSetup = sequelize.define('CallAverageSetup', {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 11,
-    comment: 'Minimum daily calls required'
+    comment: 'Minimum daily calls required (total)'
+  },
+  doctor_calls: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 8,
+    comment: 'Minimum daily doctor (DR) calls required'
+  },
+  chemist_calls: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 3,
+    comment: 'Minimum daily chemist calls required'
   },
   monthly_calls: {
     type: DataTypes.INTEGER,

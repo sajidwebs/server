@@ -21,7 +21,11 @@ router.get('/call-average', async (req, res) => {
 // Create call average setup
 router.post('/call-average', async (req, res) => {
   try {
-    const { designation, min_field_working_days, daily_calls, monthly_calls, quarterly_calls, yearly_calls, warning_threshold, alert_threshold, effective_from, effective_to } = req.body;
+    const { designation, min_field_working_days, daily_calls, doctor_calls, chemist_calls, monthly_calls, quarterly_calls, yearly_calls, warning_threshold, alert_threshold, effective_from, effective_to } = req.body;
+    
+    const docCalls = doctor_calls || 8;
+    const chemCalls = chemist_calls || 3;
+    const totalDailyCalls = daily_calls || (docCalls + chemCalls);
     
     let calculatedMonthly = monthly_calls;
     let calculatedQuarterly = quarterly_calls;
@@ -29,7 +33,7 @@ router.post('/call-average', async (req, res) => {
     
     // Auto-calculate if not provided
     if (!calculatedMonthly && min_field_working_days) {
-      calculatedMonthly = daily_calls * min_field_working_days;
+      calculatedMonthly = totalDailyCalls * min_field_working_days;
     }
     if (!calculatedQuarterly && calculatedMonthly) {
       calculatedQuarterly = calculatedMonthly * 3;
@@ -41,7 +45,9 @@ router.post('/call-average', async (req, res) => {
     const setup = await CallAverageSetup.create({
       designation,
       min_field_working_days: min_field_working_days || 20,
-      daily_calls: daily_calls || 11,
+      daily_calls: totalDailyCalls,
+      doctor_calls: docCalls,
+      chemist_calls: chemCalls,
       monthly_calls: calculatedMonthly,
       quarterly_calls: calculatedQuarterly,
       yearly_calls: calculatedYearly,
@@ -65,7 +71,11 @@ router.put('/call-average/:id', async (req, res) => {
       return res.status(404).json({ message: 'Call average setup not found' });
     }
     
-    const { min_field_working_days, daily_calls, monthly_calls, quarterly_calls, yearly_calls, warning_threshold, alert_threshold, effective_from, effective_to, isActive } = req.body;
+    const { min_field_working_days, daily_calls, doctor_calls, chemist_calls, monthly_calls, quarterly_calls, yearly_calls, warning_threshold, alert_threshold, effective_from, effective_to, isActive } = req.body;
+    
+    const docCalls = doctor_calls || setup.doctor_calls || 8;
+    const chemCalls = chemist_calls || setup.chemist_calls || 3;
+    const totalDailyCalls = daily_calls || (docCalls + chemCalls);
     
     // Recalculate if needed
     let calculatedMonthly = monthly_calls;
@@ -73,7 +83,7 @@ router.put('/call-average/:id', async (req, res) => {
     let calculatedYearly = yearly_calls;
     
     if (!calculatedMonthly && min_field_working_days) {
-      calculatedMonthly = (daily_calls || setup.daily_calls) * min_field_working_days;
+      calculatedMonthly = totalDailyCalls * min_field_working_days;
     }
     if (!calculatedQuarterly && calculatedMonthly) {
       calculatedQuarterly = calculatedMonthly * 3;
@@ -84,7 +94,9 @@ router.put('/call-average/:id', async (req, res) => {
 
     await setup.update({
       min_field_working_days: min_field_working_days || setup.min_field_working_days,
-      daily_calls: daily_calls || setup.daily_calls,
+      daily_calls: totalDailyCalls,
+      doctor_calls: docCalls,
+      chemist_calls: chemCalls,
       monthly_calls: calculatedMonthly,
       quarterly_calls: calculatedQuarterly,
       yearly_calls: calculatedYearly,
@@ -133,7 +145,7 @@ router.get('/coverage', async (req, res) => {
 // Create coverage setup
 router.post('/coverage', async (req, res) => {
   try {
-    const { designation, doctor_list_type, monthly_coverage, quarterly_coverage, yearly_coverage, effective_from, effective_to } = req.body;
+    const { designation, doctor_list_type, monthly_coverage, quarterly_coverage, yearly_coverage, doctor_warning, chemist_warning, doctor_alert, chemist_alert, effective_from, effective_to } = req.body;
     
     const setup = await CoverageSetup.create({
       designation,
@@ -141,6 +153,10 @@ router.post('/coverage', async (req, res) => {
       monthly_coverage: monthly_coverage || 90.00,
       quarterly_coverage: quarterly_coverage || 100.00,
       yearly_coverage: yearly_coverage || 100.00,
+      doctor_warning: doctor_warning || 90.00,
+      chemist_warning: chemist_warning || 100.00,
+      doctor_alert: doctor_alert || 70.00,
+      chemist_alert: chemist_alert || 90.00,
       effective_from,
       effective_to,
       created_by: req.user?.id

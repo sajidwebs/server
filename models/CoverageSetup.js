@@ -36,6 +36,30 @@ const CoverageSetup = sequelize.define('CoverageSetup', {
     defaultValue: 100.00,
     comment: 'Yearly coverage percentage target'
   },
+  doctor_warning: {
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 90.00,
+    comment: 'Doctor coverage warning threshold percentage (upper performance level)'
+  },
+  chemist_warning: {
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 100.00,
+    comment: 'Chemist coverage warning threshold percentage (upper performance level)'
+  },
+  doctor_alert: {
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 70.00,
+    comment: 'Doctor coverage alert threshold percentage (critical performance level)'
+  },
+  chemist_alert: {
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 90.00,
+    comment: 'Chemist coverage alert threshold percentage (critical performance level)'
+  },
   effective_from: {
     type: DataTypes.DATEONLY,
     allowNull: true,
