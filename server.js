@@ -19,10 +19,10 @@ const limiter = rateLimit({
 
 // Apply middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.1.8:3000', 'http://192.168.1.8:5000', 'http://127.0.0.1:3001',  'http://192.168.0.3:5173', 'http://192.168.1.8:5173', 'http://192.168.1.8:3001', 'http://localhost:5173', 'http://192.168.1.8:8081', 'https://serverapp-a8wy.onrender.com', 'https://pamsforce-admin.onrender.com'],
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept']
 }));
 app.use(morgan('combined'));
 
