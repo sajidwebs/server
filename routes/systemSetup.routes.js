@@ -11,11 +11,12 @@ async function ensureSystemSetupColumns() {
     await sequelize.query(`ALTER TABLE call_average_setup ADD COLUMN IF NOT EXISTS doctor_calls INTEGER DEFAULT 8`);
     await sequelize.query(`ALTER TABLE call_average_setup ADD COLUMN IF NOT EXISTS chemist_calls INTEGER DEFAULT 3`);
     
-    // Coverage Setup columns
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS doctor_warning DECIMAL(5,2) DEFAULT 90.00`);
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS chemist_warning DECIMAL(5,2) DEFAULT 100.00`);
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS doctor_alert DECIMAL(5,2) DEFAULT 70.00`);
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS chemist_alert DECIMAL(5,2) DEFAULT 90.00`);
+    // Coverage Setup columns - new entity_type structure
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS entity_type VARCHAR(20) DEFAULT 'Doctor'`);
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS warning_level DECIMAL(5,2) DEFAULT 90.00`);
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS alert_level DECIMAL(5,2) DEFAULT 70.00`);
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS warning_color VARCHAR(20) DEFAULT 'warning'`);
+    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS alert_color VARCHAR(20) DEFAULT 'danger'`);
   } catch (e) {
     // Ignore - columns may already exist
   }
@@ -167,22 +168,32 @@ router.get('/coverage', async (req, res) => {
   try {
     await ensureSystemSetupColumns();
     
-    // Seed default data if none exists
+    // Seed default data if none exists - separate for Doctor and Chemist
     const count = await CoverageSetup.count();
     if (count === 0) {
+      // Doctor Coverage Setup
       await CoverageSetup.bulkCreate([
-        { designation: 'MR', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'TBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'ABM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'RBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'ZBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'NSM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, doctor_warning: 90.00, chemist_warning: 100.00, doctor_alert: 70.00, chemist_alert: 90.00, effective_from: '2026-01-01', is_active: true }
+        { entity_type: 'Doctor', designation: 'MR', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Doctor', designation: 'TBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Doctor', designation: 'ABM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Doctor', designation: 'RBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Doctor', designation: 'ZBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Doctor', designation: 'NSM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true }
+      ]);
+      // Chemist Coverage Setup
+      await CoverageSetup.bulkCreate([
+        { entity_type: 'Chemist', designation: 'MR', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Chemist', designation: 'TBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Chemist', designation: 'ABM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Chemist', designation: 'RBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Chemist', designation: 'ZBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
+        { entity_type: 'Chemist', designation: 'NSM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true }
       ]);
     }
     
     const setups = await CoverageSetup.findAll({
       where: { is_active: true },
-      order: [['designation', 'ASC'], ['doctor_list_type', 'ASC'], ['effective_from', 'DESC']]
+      order: [['entity_type', 'ASC'], ['designation', 'ASC'], ['effective_from', 'DESC']]
     });
     res.json(setups);
   } catch (error) {
@@ -193,18 +204,19 @@ router.get('/coverage', async (req, res) => {
 // Create coverage setup
 router.post('/coverage', async (req, res) => {
   try {
-    const { designation, doctor_list_type, monthly_coverage, quarterly_coverage, yearly_coverage, doctor_warning, chemist_warning, doctor_alert, chemist_alert, effective_from, effective_to } = req.body;
+    const { entity_type, designation, doctor_list_type, monthly_coverage, quarterly_coverage, yearly_coverage, warning_level, alert_level, warning_color, alert_color, effective_from, effective_to } = req.body;
     
     const setup = await CoverageSetup.create({
+      entity_type: entity_type || 'Doctor',
       designation,
-      doctor_list_type: doctor_list_type || 'Core',
+      doctor_list_type: entity_type === 'Doctor' ? (doctor_list_type || 'Core') : null,
       monthly_coverage: monthly_coverage || 90.00,
       quarterly_coverage: quarterly_coverage || 100.00,
       yearly_coverage: yearly_coverage || 100.00,
-      doctor_warning: doctor_warning || 90.00,
-      chemist_warning: chemist_warning || 100.00,
-      doctor_alert: doctor_alert || 70.00,
-      chemist_alert: chemist_alert || 90.00,
+      warning_level: warning_level || 90.00,
+      alert_level: alert_level || 70.00,
+      warning_color: warning_color || 'warning',
+      alert_color: alert_color || 'danger',
       effective_from,
       effective_to,
       created_by: req.user?.id

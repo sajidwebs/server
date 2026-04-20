@@ -7,6 +7,12 @@ const CoverageSetup = sequelize.define('CoverageSetup', {
     primaryKey: true,
     autoIncrement: true
   },
+  entity_type: {
+    type: DataTypes.ENUM('Doctor', 'Chemist'),
+    allowNull: false,
+    defaultValue: 'Doctor',
+    comment: 'Doctor or Chemist - separate setup for each'
+  },
   designation: {
     type: DataTypes.STRING(50),
     allowNull: false,
@@ -14,9 +20,9 @@ const CoverageSetup = sequelize.define('CoverageSetup', {
   },
   doctor_list_type: {
     type: DataTypes.STRING(20),
-    allowNull: false,
+    allowNull: true,
     defaultValue: 'Core',
-    comment: 'Core or Secondary doctor list'
+    comment: 'Core or Secondary doctor list (for Doctor type only)'
   },
   monthly_coverage: {
     type: DataTypes.DECIMAL(5,2),
@@ -36,29 +42,29 @@ const CoverageSetup = sequelize.define('CoverageSetup', {
     defaultValue: 100.00,
     comment: 'Yearly coverage percentage target'
   },
-  doctor_warning: {
+  warning_level: {
     type: DataTypes.DECIMAL(5,2),
     allowNull: false,
     defaultValue: 90.00,
-    comment: 'Doctor coverage warning threshold percentage (upper performance level)'
+    comment: 'Warning threshold - performance below this shows warning'
   },
-  chemist_warning: {
-    type: DataTypes.DECIMAL(5,2),
-    allowNull: false,
-    defaultValue: 100.00,
-    comment: 'Chemist coverage warning threshold percentage (upper performance level)'
-  },
-  doctor_alert: {
+  alert_level: {
     type: DataTypes.DECIMAL(5,2),
     allowNull: false,
     defaultValue: 70.00,
-    comment: 'Doctor coverage alert threshold percentage (critical performance level)'
+    comment: 'Alert threshold - performance below this shows critical alert'
   },
-  chemist_alert: {
-    type: DataTypes.DECIMAL(5,2),
+  warning_color: {
+    type: DataTypes.STRING(20),
     allowNull: false,
-    defaultValue: 90.00,
-    comment: 'Chemist coverage alert threshold percentage (critical performance level)'
+    defaultValue: 'warning',
+    comment: 'UI color for warning: warning (yellow), danger (red), info (blue)'
+  },
+  alert_color: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'danger',
+    comment: 'UI color for alert: danger (red), warning (yellow), dark (black)'
   },
   effective_from: {
     type: DataTypes.DATEONLY,
