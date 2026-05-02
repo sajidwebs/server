@@ -37,6 +37,7 @@ const SOPPolicy = sequelize.define('SOPPolicy', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -45,7 +46,8 @@ const SOPPolicy = sequelize.define('SOPPolicy', {
   }
 }, {
   timestamps: true,
-  tableName: 'sop_policies'
+  tableName: 'sop_policies',
+  underscored: true
 });
 
 module.exports = SOPPolicy;

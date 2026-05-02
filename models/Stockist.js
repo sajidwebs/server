@@ -49,6 +49,7 @@ const Stockist = sequelize.define('Stockist', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -57,7 +58,8 @@ const Stockist = sequelize.define('Stockist', {
   }
 }, {
   timestamps: true,
-  tableName: 'stockists'
+  tableName: 'stockists',
+  underscored: true
 });
 
 module.exports = Stockist;

@@ -45,6 +45,7 @@ const InputAllocation = sequelize.define('InputAllocation', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -53,7 +54,8 @@ const InputAllocation = sequelize.define('InputAllocation', {
   }
 }, {
   timestamps: true,
-  tableName: 'input_allocations'
+  tableName: 'input_allocations',
+  underscored: true
 });
 
 module.exports = InputAllocation;

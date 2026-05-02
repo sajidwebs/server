@@ -49,6 +49,7 @@ const Hospital = sequelize.define('Hospital', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -57,7 +58,8 @@ const Hospital = sequelize.define('Hospital', {
   }
 }, {
   timestamps: true,
-  tableName: 'hospitals'
+  tableName: 'hospitals',
+  underscored: true
 });
 
 module.exports = Hospital;

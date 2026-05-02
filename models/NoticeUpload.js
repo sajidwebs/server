@@ -30,6 +30,7 @@ const NoticeUpload = sequelize.define('NoticeUpload', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -38,7 +39,8 @@ const NoticeUpload = sequelize.define('NoticeUpload', {
   }
 }, {
   timestamps: true,
-  tableName: 'notice_uploads'
+  tableName: 'notice_uploads',
+  underscored: true
 });
 
 module.exports = NoticeUpload;

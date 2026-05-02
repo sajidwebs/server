@@ -33,6 +33,7 @@ const PatchHeadquarter = sequelize.define('PatchHeadquarter', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -42,6 +43,7 @@ const PatchHeadquarter = sequelize.define('PatchHeadquarter', {
 }, {
   timestamps: true,
   tableName: 'patch_headquarters',
+  underscored: true,
   indexes: [
     {
       unique: true,

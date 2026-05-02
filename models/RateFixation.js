@@ -64,6 +64,7 @@ const RateFixation = sequelize.define('RateFixation', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -76,7 +77,8 @@ const RateFixation = sequelize.define('RateFixation', {
   }
 }, {
   timestamps: true,
-  tableName: 'rate_fixations'
+  tableName: 'rate_fixations',
+  underscored: true
 });
 
 module.exports = RateFixation;

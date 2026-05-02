@@ -40,6 +40,7 @@ const Patch = sequelize.define('Patch', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -48,7 +49,8 @@ const Patch = sequelize.define('Patch', {
   }
 }, {
   timestamps: true,
-  tableName: 'patches'
+  tableName: 'patches',
+  underscored: true
 });
 
 module.exports = Patch;

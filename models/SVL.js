@@ -49,6 +49,7 @@ const SVL = sequelize.define('SVL', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active',
     defaultValue: true
   },
   created_by: {
@@ -58,6 +59,7 @@ const SVL = sequelize.define('SVL', {
 }, {
   timestamps: true,
   tableName: 'svl',
+  underscored: true,
   indexes: [
     {
       unique: true,
