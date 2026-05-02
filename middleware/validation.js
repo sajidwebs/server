@@ -54,12 +54,18 @@ const validateDoctor = [
     .withMessage('Last name is required')
     .isLength({ min: 2 })
     .withMessage('Last name must be at least 2 characters long'),
-  body('specialty')
-    .notEmpty()
-    .withMessage('Specialty is required'),
-  body('location')
-    .notEmpty()
-    .withMessage('Location is required'),
+  body('specialty').custom((value, { req }) => {
+    if (!value && !req.body.specialty_id) {
+      throw new Error('Specialty is required');
+    }
+    return true;
+  }),
+  body('location').custom((value, { req }) => {
+    if (!value && !req.body.hq_id) {
+      throw new Error('Location or HQ is required');
+    }
+    return true;
+  }),
   validate
 ];
 

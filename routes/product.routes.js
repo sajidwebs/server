@@ -122,8 +122,8 @@ router.delete('/divisions/:id', authenticate, authorize(['ADMIN']), async (req, 
       });
     }
     
-    await division.destroy();
-    res.json({ message: 'Division deleted successfully' });
+    await division.update({ status: 'inactive' });
+    res.json({ message: 'Division inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -224,8 +224,8 @@ router.delete('/categories/:id', authenticate, authorize(['ADMIN']), async (req,
       });
     }
     
-    await category.destroy();
-    res.json({ message: 'Category deleted successfully' });
+    await category.update({ status: 'inactive' });
+    res.json({ message: 'Category inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -323,8 +323,8 @@ router.delete('/pack-sizes/:id', authenticate, authorize(['ADMIN']), async (req,
       });
     }
     
-    await packSize.destroy();
-    res.json({ message: 'Pack size deleted successfully' });
+    await packSize.update({ status: 'inactive' });
+    res.json({ message: 'Pack size inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -432,8 +432,8 @@ router.delete('/brand-groups/:id', authenticate, authorize(['ADMIN']), async (re
       });
     }
     
-    await brandGroup.destroy();
-    res.json({ message: 'Brand group deleted successfully' });
+    await brandGroup.update({ status: 'inactive' });
+    res.json({ message: 'Brand group inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -533,8 +533,8 @@ router.delete('/strengths/:id', authenticate, authorize(['ADMIN']), async (req, 
       });
     }
     
-    await strength.destroy();
-    res.json({ message: 'Strength deleted successfully' });
+    await strength.update({ status: 'inactive' });
+    res.json({ message: 'Strength inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -859,10 +859,10 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
       });
     }
 
-    await product.destroy();
-
+    await product.update({ status: 'inactive', isActive: false });
+    
     res.json({
-      message: 'Product deleted successfully'
+      message: 'Product inactivated successfully'
     });
   } catch (error) {
     console.error('Delete product error:', error);

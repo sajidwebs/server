@@ -54,6 +54,18 @@ const WorkTypeMaster = require('./WorkTypeMaster');
 const LeavePolicyMaster = require('./LeavePolicyMaster');
 const UserLeaveBalance = require('./UserLeaveBalance');
 
+// New Master Data Models
+const Patch = require('./Patch');
+const Stockist = require('./Stockist');
+const Hospital = require('./Hospital');
+const SVL = require('./SVL');
+const InputAllocation = require('./InputAllocation');
+const NoticeUpload = require('./NoticeUpload');
+const SOPPolicy = require('./SOPPolicy');
+const AuditLog = require('./AuditLog');
+const PatchHeadquarter = require('./PatchHeadquarter');
+const RateFixation = require('./RateFixation');
+
 // ==================== RELATIONSHIPS ====================
 
 // User - Activity
@@ -609,6 +621,228 @@ UserLeaveBalance.belongsTo(User, {
   as: 'user'
 });
 
+// ==================== NEW MASTER DATA RELATIONSHIPS ====================
+
+// Patch - Headquarter
+Headquarter.hasMany(Patch, {
+  foreignKey: 'hq_id',
+  as: 'patches'
+});
+
+Patch.belongsTo(Headquarter, {
+  foreignKey: 'hq_id',
+  as: 'headquarter'
+});
+
+// Patch - Headquarter many-to-many mapping
+Patch.belongsToMany(Headquarter, {
+  through: PatchHeadquarter,
+  foreignKey: 'patch_id',
+  otherKey: 'hq_id',
+  as: 'mappedHeadquarters'
+});
+
+Headquarter.belongsToMany(Patch, {
+  through: PatchHeadquarter,
+  foreignKey: 'hq_id',
+  otherKey: 'patch_id',
+  as: 'mappedPatches'
+});
+
+Patch.hasMany(PatchHeadquarter, {
+  foreignKey: 'patch_id',
+  as: 'hqMappings'
+});
+
+PatchHeadquarter.belongsTo(Patch, {
+  foreignKey: 'patch_id',
+  as: 'patch'
+});
+
+Headquarter.hasMany(PatchHeadquarter, {
+  foreignKey: 'hq_id',
+  as: 'patchMappings'
+});
+
+PatchHeadquarter.belongsTo(Headquarter, {
+  foreignKey: 'hq_id',
+  as: 'headquarter'
+});
+
+// Doctor - Patch
+Patch.hasMany(Doctor, {
+  foreignKey: 'patch_id',
+  as: 'doctors'
+});
+
+Doctor.belongsTo(Patch, {
+  foreignKey: 'patch_id',
+  as: 'patch'
+});
+
+// Chemist - Patch
+Patch.hasMany(Chemist, {
+  foreignKey: 'patch_id',
+  as: 'chemists'
+});
+
+Chemist.belongsTo(Patch, {
+  foreignKey: 'patch_id',
+  as: 'patch'
+});
+
+// Stockist - Patch
+Patch.hasMany(Stockist, {
+  foreignKey: 'patch_id',
+  as: 'stockists'
+});
+
+Stockist.belongsTo(Patch, {
+  foreignKey: 'patch_id',
+  as: 'patch'
+});
+
+// Hospital - Patch
+Patch.hasMany(Hospital, {
+  foreignKey: 'patch_id',
+  as: 'hospitals'
+});
+
+Hospital.belongsTo(Patch, {
+  foreignKey: 'patch_id',
+  as: 'patch'
+});
+
+// Headquarter - Stockist
+Headquarter.hasMany(Stockist, {
+  foreignKey: 'hq_id',
+  as: 'stockists'
+});
+
+Stockist.belongsTo(Headquarter, {
+  foreignKey: 'hq_id',
+  as: 'headquarter'
+});
+
+// Headquarter - Hospital
+Headquarter.hasMany(Hospital, {
+  foreignKey: 'hq_id',
+  as: 'hospitals'
+});
+
+Hospital.belongsTo(Headquarter, {
+  foreignKey: 'hq_id',
+  as: 'headquarter'
+});
+
+// SVL - Doctor
+Doctor.hasMany(SVL, {
+  foreignKey: 'doctor_id',
+  as: 'svlEntries'
+});
+
+SVL.belongsTo(Doctor, {
+  foreignKey: 'doctor_id',
+  as: 'doctor'
+});
+
+// SVL - Headquarter
+Headquarter.hasMany(SVL, {
+  foreignKey: 'hq_id',
+  as: 'svlEntries'
+});
+
+SVL.belongsTo(Headquarter, {
+  foreignKey: 'hq_id',
+  as: 'headquarter'
+});
+
+// InputAllocation - User
+User.hasMany(InputAllocation, {
+  foreignKey: 'user_id',
+  as: 'inputAllocations'
+});
+
+InputAllocation.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user'
+});
+
+// InputAllocation - InputMaster
+InputMaster.hasMany(InputAllocation, {
+  foreignKey: 'input_id',
+  as: 'allocations'
+});
+
+InputAllocation.belongsTo(InputMaster, {
+  foreignKey: 'input_id',
+  as: 'input'
+});
+
+// NoticeUpload - User
+User.hasMany(NoticeUpload, {
+  foreignKey: 'created_by',
+  as: 'noticeUploads'
+});
+
+NoticeUpload.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+// SOPPolicy - User
+User.hasMany(SOPPolicy, {
+  foreignKey: 'created_by',
+  as: 'sopPolicies'
+});
+
+SOPPolicy.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'creator'
+});
+
+// AuditLog - User
+User.hasMany(AuditLog, {
+  foreignKey: 'changed_by',
+  as: 'auditLogs'
+});
+
+AuditLog.belongsTo(User, {
+  foreignKey: 'changed_by',
+  as: 'user'
+});
+
+// Rate Fixation relationships
+Product.hasMany(RateFixation, {
+  foreignKey: 'product_id',
+  as: 'rateFixations'
+});
+
+RateFixation.belongsTo(Product, {
+  foreignKey: 'product_id',
+  as: 'product'
+});
+
+SampleMaster.hasMany(RateFixation, {
+  foreignKey: 'sample_id',
+  as: 'rateFixations'
+});
+
+RateFixation.belongsTo(SampleMaster, {
+  foreignKey: 'sample_id',
+  as: 'sample'
+});
+
+InputMaster.hasMany(RateFixation, {
+  foreignKey: 'input_id',
+  as: 'rateFixations'
+});
+
+RateFixation.belongsTo(InputMaster, {
+  foreignKey: 'input_id',
+  as: 'input'
+});
+
 // ==================== EXPORT MODELS ====================
 
 module.exports = {
@@ -660,5 +894,16 @@ module.exports = {
   WorkTypeSetup,
   WorkTypeMaster,
   LeavePolicyMaster,
-  UserLeaveBalance
+  UserLeaveBalance,
+  // New Master Data Models
+  Patch,
+  Stockist,
+  Hospital,
+  SVL,
+  InputAllocation,
+  NoticeUpload,
+  SOPPolicy,
+  AuditLog,
+  PatchHeadquarter,
+  RateFixation
 };

@@ -1,68 +1,40 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Chemist = sequelize.define('Chemist', {
+const Stockist = sequelize.define('Stockist', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
   },
-  name: {
+  stockist_name: {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
       notEmpty: true
     }
   },
-  location: {
+  mobile: {
     type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
-  },
-  address: {
-    type: DataTypes.TEXT
-  },
-  phone: {
-    type: DataTypes.STRING
-  },
-  email: {
-    type: DataTypes.STRING,
-    validate: {
-      isEmail: true
-    }
+    allowNull: true
   },
   contact_person: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  owner_name: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  dl_number: {
-    type: DataTypes.STRING,
+  hq_id: {
+    type: DataTypes.INTEGER,
     allowNull: true
   },
   state: {
     type: DataTypes.STRING,
     allowNull: true
   },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   patch_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  visit_time: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    defaultValue: 'Any time'
-  },
-  hq_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  territory_id: {
     type: DataTypes.INTEGER,
     allowNull: true
   },
@@ -79,13 +51,13 @@ const Chemist = sequelize.define('Chemist', {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
-  createdBy: {
+  created_by: {
     type: DataTypes.INTEGER,
     allowNull: true
   }
 }, {
   timestamps: true,
-  tableName: 'chemists'
+  tableName: 'stockists'
 });
 
-module.exports = Chemist;
+module.exports = Stockist;

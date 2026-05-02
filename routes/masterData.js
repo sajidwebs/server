@@ -1,7 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Territory, Headquarter, Chemist, Product, Activity, Hospital, InputType, InputClass, InputMaster, SampleMaster, PackSize } = require('../models');
+const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Territory, Headquarter, Chemist, Product, Activity, Hospital, InputType, InputClass, InputMaster, SampleMaster, PackSize, Patch, Stockist, SVL, InputAllocation, NoticeUpload, SOPPolicy, AuditLog, PatchHeadquarter, RateFixation, User } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
+
+// Audit logging helper function
+const logAudit = async (tableName, recordId, action, changedBy, oldValue = null, newValue = null, fieldName = null) => {
+  try {
+    await AuditLog.create({
+      table_name: tableName,
+      record_id: recordId,
+      action,
+      changed_by: changedBy,
+      old_value: oldValue,
+      new_value: newValue,
+      field_name: fieldName
+    });
+  } catch (error) {
+    console.error('Audit logging failed:', error.message);
+  }
+};
+
+const toPlain = (record) => record ? record.get({ plain: true }) : null;
+
+const softDelete = async (record, tableName, userId, extra = {}) => {
+  const oldValue = toPlain(record);
+  await record.update({
+    isActive: false,
+    status: record.status !== undefined ? 'inactive' : record.status,
+    end_date: record.end_date !== undefined ? new Date() : record.end_date,
+    ...extra
+  });
+  await logAudit(tableName, record.id, 'SOFT_DELETE', userId, oldValue, toPlain(record));
+};
+
+const auditCreate = async (tableName, record, userId) => {
+  await logAudit(tableName, record.id, 'CREATE', userId, null, toPlain(record));
+};
+
+const auditUpdate = async (tableName, recordId, userId, oldValue, record) => {
+  await logAudit(tableName, recordId, 'UPDATE', userId, oldValue, toPlain(record));
+};
 
 // ==================== DOCTOR CLASS ROUTES ====================
 
@@ -85,8 +123,8 @@ router.delete('/doctor-classes/:id', authenticate, authorize(['ADMIN']), async (
       return res.status(404).json({ error: 'Doctor class not found' });
     }
     
-    await doctorClass.destroy();
-    res.json({ message: 'Doctor class deleted successfully' });
+    await softDelete(doctorClass, 'doctor_classes', req.user.id);
+    res.json({ message: 'Doctor class inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -185,8 +223,8 @@ router.delete('/doctor-categories/:id', authenticate, authorize(['ADMIN']), asyn
       });
     }
     
-    await category.destroy();
-    res.json({ message: 'Doctor category deleted successfully' });
+    await softDelete(category, 'doctor_categories', req.user.id);
+    res.json({ message: 'Doctor category inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -284,8 +322,8 @@ router.delete('/doctor-specialties/:id', authenticate, authorize(['ADMIN']), asy
       });
     }
     
-    await specialty.destroy();
-    res.json({ message: 'Doctor specialty deleted successfully' });
+    await softDelete(specialty, 'doctor_specialties', req.user.id);
+    res.json({ message: 'Doctor specialty inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -383,8 +421,8 @@ router.delete('/doctor-qualifications/:id', authenticate, authorize(['ADMIN']), 
       });
     }
     
-    await qualification.destroy();
-    res.json({ message: 'Doctor qualification deleted successfully' });
+    await softDelete(qualification, 'doctor_qualifications', req.user.id);
+    res.json({ message: 'Doctor qualification inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -442,11 +480,17 @@ router.get('/doctors/:id', authenticate, async (req, res) => {
 // Create doctor (Admin only - Head Office can add directly)
 router.post('/doctors', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    const { firstName, lastName, specialty_id, category_id, qualification_id, territory_id, hq_id, location, address, phone, email } = req.body;
+    const {
+      firstName, lastName, specialty_id, category_id, qualification_id, class_id,
+      territory_id, hq_id, location, address, phone, email, registration_number,
+      mobile_number, state, patch_id, full_address, visit_time, visit_day,
+      patients_per_week, dob, anniversary, start_date, end_date
+    } = req.body;
     
     const doctor = await Doctor.create({
       firstName,
       lastName,
+      class_id,
       specialty_id,
       category_id,
       qualification_id,
@@ -456,10 +500,23 @@ router.post('/doctors', authenticate, authorize(['ADMIN']), async (req, res) => 
       address,
       phone,
       email,
+      registration_number,
+      mobile_number,
+      state,
+      patch_id,
+      full_address,
+      visit_time,
+      visit_day,
+      patients_per_week,
+      dob,
+      anniversary,
+      start_date,
+      end_date,
       approval_status: 'approved',
       current_approval_level: 0,
       created_by: req.user.id
     });
+    await auditCreate('doctors', doctor, req.user.id);
     
     res.status(201).json(doctor);
   } catch (error) {
@@ -475,11 +532,18 @@ router.put('/doctors/:id', authenticate, authorize(['ADMIN']), async (req, res) 
       return res.status(404).json({ error: 'Doctor not found' });
     }
     
-    const { firstName, lastName, specialty_id, category_id, qualification_id, territory_id, hq_id, location, address, phone, email, isActive } = req.body;
+    const oldValue = toPlain(doctor);
+    const {
+      firstName, lastName, specialty_id, category_id, qualification_id, class_id,
+      territory_id, hq_id, location, address, phone, email, registration_number,
+      mobile_number, state, patch_id, full_address, visit_time, visit_day,
+      patients_per_week, dob, anniversary, start_date, end_date, isActive
+    } = req.body;
     
     await doctor.update({
       firstName: firstName || doctor.firstName,
       lastName: lastName || doctor.lastName,
+      class_id: class_id !== undefined ? class_id : doctor.class_id,
       specialty_id: specialty_id !== undefined ? specialty_id : doctor.specialty_id,
       category_id: category_id !== undefined ? category_id : doctor.category_id,
       qualification_id: qualification_id !== undefined ? qualification_id : doctor.qualification_id,
@@ -489,8 +553,21 @@ router.put('/doctors/:id', authenticate, authorize(['ADMIN']), async (req, res) 
       address: address !== undefined ? address : doctor.address,
       phone: phone !== undefined ? phone : doctor.phone,
       email: email !== undefined ? email : doctor.email,
+      registration_number: registration_number !== undefined ? registration_number : doctor.registration_number,
+      mobile_number: mobile_number !== undefined ? mobile_number : doctor.mobile_number,
+      state: state !== undefined ? state : doctor.state,
+      patch_id: patch_id !== undefined ? patch_id : doctor.patch_id,
+      full_address: full_address !== undefined ? full_address : doctor.full_address,
+      visit_time: visit_time !== undefined ? visit_time : doctor.visit_time,
+      visit_day: visit_day !== undefined ? visit_day : doctor.visit_day,
+      patients_per_week: patients_per_week !== undefined ? patients_per_week : doctor.patients_per_week,
+      dob: dob !== undefined ? dob : doctor.dob,
+      anniversary: anniversary !== undefined ? anniversary : doctor.anniversary,
+      start_date: start_date !== undefined ? start_date : doctor.start_date,
+      end_date: end_date !== undefined ? end_date : doctor.end_date,
       isActive: isActive !== undefined ? isActive : doctor.isActive
     });
+    await auditUpdate('doctors', doctor.id, req.user.id, oldValue, doctor);
     
     res.json(doctor);
   } catch (error) {
@@ -506,8 +583,8 @@ router.delete('/doctors/:id', authenticate, authorize(['ADMIN']), async (req, re
       return res.status(404).json({ error: 'Doctor not found' });
     }
     
-    await doctor.destroy();
-    res.json({ message: 'Doctor deleted successfully' });
+    await softDelete(doctor, 'doctors', req.user.id);
+    res.json({ message: 'Doctor inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -608,8 +685,8 @@ router.delete('/input-types/:id', authenticate, authorize(['ADMIN']), async (req
       });
     }
     
-    await inputType.destroy();
-    res.json({ message: 'Input type deleted successfully' });
+    await softDelete(inputType, 'input_types', req.user.id);
+    res.json({ message: 'Input type inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -708,8 +785,8 @@ router.delete('/input-classes/:id', authenticate, authorize(['ADMIN']), async (r
       });
     }
     
-    await inputClass.destroy();
-    res.json({ message: 'Input class deleted successfully' });
+    await softDelete(inputClass, 'input_classes', req.user.id);
+    res.json({ message: 'Input class inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -829,8 +906,8 @@ router.delete('/inputs/:id', authenticate, authorize(['ADMIN']), async (req, res
       return res.status(404).json({ error: 'Input not found' });
     }
     
-    await input.destroy();
-    res.json({ message: 'Input deleted successfully' });
+    await softDelete(input, 'input_masters', req.user.id);
+    res.json({ message: 'Input inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -951,10 +1028,875 @@ router.delete('/samples/:id', authenticate, authorize(['ADMIN']), async (req, re
       return res.status(404).json({ error: 'Sample not found' });
     }
     
-    await sample.destroy();
-    res.json({ message: 'Sample deleted successfully' });
+    await softDelete(sample, 'sample_masters', req.user.id);
+    res.json({ message: 'Sample inactivated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== PATCH MASTER ROUTES ====================
+
+// Get all patches (open to all authenticated users)
+router.get('/patches', authenticate, async (req, res) => {
+  try {
+    const { status, hq_id, state } = req.query;
+    const where = {};
+
+    if (status) where.isActive = status === 'active';
+    if (hq_id) where.hq_id = hq_id;
+    if (state) where.state = state;
+
+    const patches = await Patch.findAll({
+      where,
+      include: [
+        { model: Headquarter, as: 'headquarter', attributes: ['id', 'name'] },
+        { model: Headquarter, as: 'mappedHeadquarters', attributes: ['id', 'name'], through: { attributes: ['isActive'] } }
+      ],
+      order: [['patch_name', 'ASC']]
+    });
+    res.json(patches);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single patch
+router.get('/patches/:id', authenticate, async (req, res) => {
+  try {
+    const patch = await Patch.findByPk(req.params.id, {
+      include: [
+        { model: Headquarter, as: 'headquarter' },
+        { model: Headquarter, as: 'mappedHeadquarters', through: { attributes: ['isActive', 'start_date', 'end_date'] } }
+      ]
+    });
+    if (!patch) {
+      return res.status(404).json({ error: 'Patch not found' });
+    }
+    res.json(patch);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create patch (Admin only)
+router.post('/patches', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { patch_name, state, hq_id, pincode } = req.body;
+
+    const patch = await Patch.create({
+      patch_name,
+      state,
+      hq_id,
+      pincode,
+      created_by: req.user.id
+    });
+    if (hq_id) {
+      await PatchHeadquarter.findOrCreate({
+        where: { patch_id: patch.id, hq_id },
+        defaults: { created_by: req.user.id, isActive: true }
+      });
+    }
+    await auditCreate('patches', patch, req.user.id);
+
+    res.status(201).json(patch);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update patch (Admin only)
+router.put('/patches/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const patch = await Patch.findByPk(req.params.id);
+    if (!patch) {
+      return res.status(404).json({ error: 'Patch not found' });
+    }
+
+    const oldValue = toPlain(patch);
+    const { patch_name, state, hq_id, pincode, isActive } = req.body;
+    await patch.update({
+      patch_name: patch_name || patch.patch_name,
+      state: state || patch.state,
+      hq_id: hq_id !== undefined ? hq_id : patch.hq_id,
+      pincode: pincode || patch.pincode,
+      isActive: isActive !== undefined ? isActive : patch.isActive
+    });
+    if (hq_id !== undefined && hq_id !== null) {
+      await PatchHeadquarter.findOrCreate({
+        where: { patch_id: patch.id, hq_id },
+        defaults: { created_by: req.user.id, isActive: true }
+      });
+    }
+    await auditUpdate('patches', patch.id, req.user.id, oldValue, patch);
+
+    res.json(patch);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete patch (Admin only)
+router.delete('/patches/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const patch = await Patch.findByPk(req.params.id);
+    if (!patch) {
+      return res.status(404).json({ error: 'Patch not found' });
+    }
+
+    await softDelete(patch, 'patches', req.user.id);
+    await PatchHeadquarter.update(
+      { isActive: false, end_date: new Date() },
+      { where: { patch_id: patch.id } }
+    );
+    res.json({ message: 'Patch inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Map a patch to an HQ (Admin only)
+router.post('/patches/:id/headquarters', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { hq_id, start_date, end_date } = req.body;
+    const patch = await Patch.findByPk(req.params.id);
+    if (!patch) {
+      return res.status(404).json({ error: 'Patch not found' });
+    }
+
+    const [mapping, created] = await PatchHeadquarter.findOrCreate({
+      where: { patch_id: patch.id, hq_id },
+      defaults: {
+        start_date,
+        end_date,
+        isActive: true,
+        created_by: req.user.id
+      }
+    });
+
+    if (!created) {
+      const oldValue = toPlain(mapping);
+      await mapping.update({ start_date: start_date || mapping.start_date, end_date, isActive: true });
+      await auditUpdate('patch_headquarters', mapping.id, req.user.id, oldValue, mapping);
+    } else {
+      await auditCreate('patch_headquarters', mapping, req.user.id);
+    }
+
+    res.status(created ? 201 : 200).json(mapping);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Remove a patch-HQ mapping without deleting the patch
+router.delete('/patches/:id/headquarters/:hqId', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const mapping = await PatchHeadquarter.findOne({
+      where: { patch_id: req.params.id, hq_id: req.params.hqId }
+    });
+    if (!mapping) {
+      return res.status(404).json({ error: 'Patch-HQ mapping not found' });
+    }
+    await softDelete(mapping, 'patch_headquarters', req.user.id);
+    res.json({ message: 'Patch-HQ mapping inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== STOCKIST MASTER ROUTES ====================
+
+// Get all stockists (open to all authenticated users)
+router.get('/stockists', authenticate, async (req, res) => {
+  try {
+    const { status, hq_id, state } = req.query;
+    const where = {};
+
+    if (status) where.isActive = status === 'active';
+    if (hq_id) where.hq_id = hq_id;
+    if (state) where.state = state;
+
+    const stockists = await Stockist.findAll({
+      where,
+      include: [
+        { model: Headquarter, as: 'headquarter', attributes: ['id', 'name'] },
+        { model: Patch, as: 'patch', attributes: ['id', 'patch_name'] }
+      ],
+      order: [['stockist_name', 'ASC']]
+    });
+    res.json(stockists);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single stockist
+router.get('/stockists/:id', authenticate, async (req, res) => {
+  try {
+    const stockist = await Stockist.findByPk(req.params.id, {
+      include: [
+        { model: Headquarter, as: 'headquarter' },
+        { model: Patch, as: 'patch' }
+      ]
+    });
+    if (!stockist) {
+      return res.status(404).json({ error: 'Stockist not found' });
+    }
+    res.json(stockist);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create stockist (Admin only)
+router.post('/stockists', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { stockist_name, mobile, contact_person, hq_id, state, address, patch_id } = req.body;
+
+    const stockist = await Stockist.create({
+      stockist_name,
+      mobile,
+      contact_person,
+      hq_id,
+      state,
+      address,
+      patch_id,
+      created_by: req.user.id
+    });
+    await auditCreate('stockists', stockist, req.user.id);
+
+    res.status(201).json(stockist);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update stockist (Admin only)
+router.put('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const stockist = await Stockist.findByPk(req.params.id);
+    if (!stockist) {
+      return res.status(404).json({ error: 'Stockist not found' });
+    }
+
+    const oldValue = toPlain(stockist);
+    const { stockist_name, mobile, contact_person, hq_id, state, address, patch_id, isActive } = req.body;
+    await stockist.update({
+      stockist_name: stockist_name || stockist.stockist_name,
+      mobile: mobile || stockist.mobile,
+      contact_person: contact_person || stockist.contact_person,
+      hq_id: hq_id !== undefined ? hq_id : stockist.hq_id,
+      state: state || stockist.state,
+      address: address || stockist.address,
+      patch_id: patch_id !== undefined ? patch_id : stockist.patch_id,
+      isActive: isActive !== undefined ? isActive : stockist.isActive
+    });
+    await auditUpdate('stockists', stockist.id, req.user.id, oldValue, stockist);
+
+    res.json(stockist);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete stockist (Admin only)
+router.delete('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const stockist = await Stockist.findByPk(req.params.id);
+    if (!stockist) {
+      return res.status(404).json({ error: 'Stockist not found' });
+    }
+
+    await softDelete(stockist, 'stockists', req.user.id);
+    res.json({ message: 'Stockist inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== HOSPITAL MASTER ROUTES ====================
+
+// Get all hospitals (open to all authenticated users)
+router.get('/hospitals', authenticate, async (req, res) => {
+  try {
+    const { status, hq_id, state } = req.query;
+    const where = {};
+
+    if (status) where.isActive = status === 'active';
+    if (hq_id) where.hq_id = hq_id;
+    if (state) where.state = state;
+
+    const hospitals = await Hospital.findAll({
+      where,
+      include: [
+        { model: Headquarter, as: 'headquarter', attributes: ['id', 'name'] },
+        { model: Patch, as: 'patch', attributes: ['id', 'patch_name'] }
+      ],
+      order: [['hospital_name', 'ASC']]
+    });
+    res.json(hospitals);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single hospital
+router.get('/hospitals/:id', authenticate, async (req, res) => {
+  try {
+    const hospital = await Hospital.findByPk(req.params.id, {
+      include: [
+        { model: Headquarter, as: 'headquarter' },
+        { model: Patch, as: 'patch' }
+      ]
+    });
+    if (!hospital) {
+      return res.status(404).json({ error: 'Hospital not found' });
+    }
+    res.json(hospital);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create hospital (Admin only)
+router.post('/hospitals', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { hospital_name, mobile, contact_person, hq_id, state, address, patch_id } = req.body;
+
+    const hospital = await Hospital.create({
+      hospital_name,
+      mobile,
+      contact_person,
+      hq_id,
+      state,
+      address,
+      patch_id,
+      created_by: req.user.id
+    });
+    await auditCreate('hospitals', hospital, req.user.id);
+
+    res.status(201).json(hospital);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update hospital (Admin only)
+router.put('/hospitals/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const hospital = await Hospital.findByPk(req.params.id);
+    if (!hospital) {
+      return res.status(404).json({ error: 'Hospital not found' });
+    }
+
+    const oldValue = toPlain(hospital);
+    const { hospital_name, mobile, contact_person, hq_id, state, address, patch_id, isActive } = req.body;
+    await hospital.update({
+      hospital_name: hospital_name || hospital.hospital_name,
+      mobile: mobile || hospital.mobile,
+      contact_person: contact_person || hospital.contact_person,
+      hq_id: hq_id !== undefined ? hq_id : hospital.hq_id,
+      state: state || hospital.state,
+      address: address || hospital.address,
+      patch_id: patch_id !== undefined ? patch_id : hospital.patch_id,
+      isActive: isActive !== undefined ? isActive : hospital.isActive
+    });
+    await auditUpdate('hospitals', hospital.id, req.user.id, oldValue, hospital);
+
+    res.json(hospital);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete hospital (Admin only)
+router.delete('/hospitals/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const hospital = await Hospital.findByPk(req.params.id);
+    if (!hospital) {
+      return res.status(404).json({ error: 'Hospital not found' });
+    }
+
+    await softDelete(hospital, 'hospitals', req.user.id);
+    res.json({ message: 'Hospital inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== SVL (STANDARD VISITING LIST) ROUTES ====================
+
+// Get all SVL entries (open to all authenticated users)
+router.get('/svl', authenticate, async (req, res) => {
+  try {
+    const { hq_id, doctor_id, year } = req.query;
+    const where = {};
+
+    if (hq_id) where.hq_id = hq_id;
+    if (doctor_id) where.doctor_id = doctor_id;
+    if (year) where.year = year;
+
+    const svlEntries = await SVL.findAll({
+      where,
+      include: [
+        { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName'] },
+        { model: Headquarter, as: 'headquarter', attributes: ['id', 'name'] }
+      ],
+      order: [['year', 'DESC'], ['doctor_id', 'ASC']]
+    });
+    res.json(svlEntries);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get SVL for specific HQ
+router.get('/svl/hq/:hq_id', authenticate, async (req, res) => {
+  try {
+    const { year } = req.query;
+    const where = { hq_id: req.params.hq_id };
+
+    if (year) where.year = year;
+
+    const svlEntries = await SVL.findAll({
+      where,
+      include: [
+        { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName', 'specialty', 'location'] }
+      ],
+      order: [['priority', 'ASC']]
+    });
+    res.json(svlEntries);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add doctor to SVL (Admin only)
+router.post('/svl', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { doctor_id, hq_id, visit_frequency, priority, year } = req.body;
+
+    const svl = await SVL.create({
+      doctor_id,
+      hq_id,
+      visit_frequency: visit_frequency || 'Weekly',
+      priority: priority || 1,
+      year: year || new Date().getFullYear(),
+      created_by: req.user.id
+    });
+    await auditCreate('svl', svl, req.user.id);
+
+    res.status(201).json(svl);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Remove doctor from SVL (Admin only)
+router.delete('/svl/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const svl = await SVL.findByPk(req.params.id);
+    if (!svl) {
+      return res.status(404).json({ error: 'SVL entry not found' });
+    }
+
+    await softDelete(svl, 'svl', req.user.id);
+    res.json({ message: 'Doctor removed from active SVL successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== INPUT ALLOCATION MASTER ROUTES ====================
+
+// Get all input allocations (open to all authenticated users)
+router.get('/input-allocations', authenticate, async (req, res) => {
+  try {
+    const { user_id, input_id } = req.query;
+    const where = {};
+
+    if (user_id) where.user_id = user_id;
+    if (input_id) where.input_id = input_id;
+
+    const allocations = await InputAllocation.findAll({
+      where,
+      include: [
+        { model: require('../models').User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+        { model: InputMaster, as: 'input', attributes: ['id', 'input_name'] }
+      ],
+      order: [['start_date', 'DESC']]
+    });
+    res.json(allocations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create input allocation (Admin only)
+router.post('/input-allocations', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { user_id, input_id, product_input, qty, start_date, end_date, allocation_type } = req.body;
+
+    const allocation = await InputAllocation.create({
+      user_id,
+      input_id,
+      product_input,
+      qty,
+      start_date,
+      end_date,
+      allocation_type: allocation_type || 'monthly',
+      created_by: req.user.id
+    });
+    await auditCreate('input_allocations', allocation, req.user.id);
+
+    res.status(201).json(allocation);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update input allocation (Admin only)
+router.put('/input-allocations/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const allocation = await InputAllocation.findByPk(req.params.id);
+    if (!allocation) {
+      return res.status(404).json({ error: 'Input allocation not found' });
+    }
+
+    const oldValue = toPlain(allocation);
+    const { user_id, input_id, product_input, qty, start_date, end_date, allocation_type, isActive } = req.body;
+    await allocation.update({
+      user_id: user_id || allocation.user_id,
+      input_id: input_id || allocation.input_id,
+      product_input: product_input || allocation.product_input,
+      qty: qty !== undefined ? qty : allocation.qty,
+      start_date: start_date || allocation.start_date,
+      end_date: end_date || allocation.end_date,
+      allocation_type: allocation_type || allocation.allocation_type,
+      isActive: isActive !== undefined ? isActive : allocation.isActive
+    });
+    await auditUpdate('input_allocations', allocation.id, req.user.id, oldValue, allocation);
+
+    res.json(allocation);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete input allocation (Admin only)
+router.delete('/input-allocations/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const allocation = await InputAllocation.findByPk(req.params.id);
+    if (!allocation) {
+      return res.status(404).json({ error: 'Input allocation not found' });
+    }
+
+    await softDelete(allocation, 'input_allocations', req.user.id);
+    res.json({ message: 'Input allocation inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== NOTICE UPLOAD MASTER ROUTES ====================
+
+// Get all notices (open to all authenticated users)
+router.get('/notices', authenticate, async (req, res) => {
+  try {
+    const { status, audience } = req.query;
+    const where = {};
+
+    if (status) where.isActive = status === 'active';
+    if (audience) where.audience = audience;
+
+    const notices = await NoticeUpload.findAll({
+      where,
+      include: [
+        { model: require('../models').User, as: 'creator', attributes: ['id', 'firstName', 'lastName'] }
+      ],
+      order: [['effective_date', 'DESC']]
+    });
+    res.json(notices);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create notice (Admin only)
+router.post('/notices', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { notice_id, title, notice_document, effective_date, audience } = req.body;
+
+    const notice = await NoticeUpload.create({
+      notice_id,
+      title,
+      notice_document,
+      effective_date,
+      audience: audience || 'all',
+      created_by: req.user.id
+    });
+    await auditCreate('notice_uploads', notice, req.user.id);
+
+    res.status(201).json(notice);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update notice (Admin only)
+router.put('/notices/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const notice = await NoticeUpload.findByPk(req.params.id);
+    if (!notice) {
+      return res.status(404).json({ error: 'Notice not found' });
+    }
+
+    const oldValue = toPlain(notice);
+    const { notice_id, title, notice_document, effective_date, audience, isActive } = req.body;
+    await notice.update({
+      notice_id: notice_id || notice.notice_id,
+      title: title || notice.title,
+      notice_document: notice_document || notice.notice_document,
+      effective_date: effective_date || notice.effective_date,
+      audience: audience || notice.audience,
+      isActive: isActive !== undefined ? isActive : notice.isActive
+    });
+    await auditUpdate('notice_uploads', notice.id, req.user.id, oldValue, notice);
+
+    res.json(notice);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete notice (Admin only)
+router.delete('/notices/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const notice = await NoticeUpload.findByPk(req.params.id);
+    if (!notice) {
+      return res.status(404).json({ error: 'Notice not found' });
+    }
+
+    await softDelete(notice, 'notice_uploads', req.user.id);
+    res.json({ message: 'Notice inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== SOP/POLICY MASTER ROUTES ====================
+
+// Get all SOP/policies (open to all authenticated users)
+router.get('/sop-policies', authenticate, async (req, res) => {
+  try {
+    const { designation, status } = req.query;
+    const where = {};
+
+    if (designation) where.designation = designation;
+    if (status) where.isActive = status === 'active';
+
+    const policies = await SOPPolicy.findAll({
+      where,
+      include: [
+        { model: require('../models').User, as: 'creator', attributes: ['id', 'firstName', 'lastName'] }
+      ],
+      order: [['start_date', 'DESC']]
+    });
+    res.json(policies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create SOP/policy (Admin only)
+router.post('/sop-policies', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { designation, sop_document, probation_policy, regular_policy, whistle_blower_policy, start_date, end_date } = req.body;
+
+    const policy = await SOPPolicy.create({
+      designation,
+      sop_document,
+      probation_policy,
+      regular_policy,
+      whistle_blower_policy,
+      start_date,
+      end_date,
+      created_by: req.user.id
+    });
+    await auditCreate('sop_policies', policy, req.user.id);
+
+    res.status(201).json(policy);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update SOP/policy (Admin only)
+router.put('/sop-policies/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const policy = await SOPPolicy.findByPk(req.params.id);
+    if (!policy) {
+      return res.status(404).json({ error: 'SOP/Policy not found' });
+    }
+
+    const oldValue = toPlain(policy);
+    const { designation, sop_document, probation_policy, regular_policy, whistle_blower_policy, start_date, end_date, isActive } = req.body;
+    await policy.update({
+      designation: designation || policy.designation,
+      sop_document: sop_document || policy.sop_document,
+      probation_policy: probation_policy || policy.probation_policy,
+      regular_policy: regular_policy || policy.regular_policy,
+      whistle_blower_policy: whistle_blower_policy || policy.whistle_blower_policy,
+      start_date: start_date || policy.start_date,
+      end_date: end_date || policy.end_date,
+      isActive: isActive !== undefined ? isActive : policy.isActive
+    });
+    await auditUpdate('sop_policies', policy.id, req.user.id, oldValue, policy);
+
+    res.json(policy);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete SOP/policy (Admin only)
+router.delete('/sop-policies/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const policy = await SOPPolicy.findByPk(req.params.id);
+    if (!policy) {
+      return res.status(404).json({ error: 'SOP/Policy not found' });
+    }
+
+    await softDelete(policy, 'sop_policies', req.user.id);
+    res.json({ message: 'SOP/Policy inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== RATE FIXATION MASTER ROUTES ====================
+
+// Get all rate fixations
+router.get('/rate-fixations', authenticate, async (req, res) => {
+  try {
+    const { state, product_id, status } = req.query;
+    const where = {};
+
+    if (state) where.state = state;
+    if (product_id) where.product_id = product_id;
+    if (status) where.isActive = status === 'active';
+
+    const rates = await RateFixation.findAll({
+      where,
+      include: [
+        { model: Product, as: 'product', attributes: ['id', 'name', 'code'] },
+        { model: SampleMaster, as: 'sample', attributes: ['id', 'sample_name'] },
+        { model: InputMaster, as: 'input', attributes: ['id', 'input_name'] }
+      ],
+      order: [['effective_from', 'DESC'], ['state', 'ASC']]
+    });
+    res.json(rates);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create rate fixation
+router.post('/rate-fixations', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { state, product_id, sample_id, input_id, pts, ptr, mrp, nrv, effective_from, effective_to } = req.body;
+
+    const rate = await RateFixation.create({
+      state,
+      product_id,
+      sample_id,
+      input_id,
+      pts,
+      ptr,
+      mrp,
+      nrv,
+      effective_from,
+      effective_to,
+      created_by: req.user.id
+    });
+    await auditCreate('rate_fixations', rate, req.user.id);
+
+    res.status(201).json(rate);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update rate fixation
+router.put('/rate-fixations/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const rate = await RateFixation.findByPk(req.params.id);
+    if (!rate) {
+      return res.status(404).json({ error: 'Rate fixation not found' });
+    }
+
+    const oldValue = toPlain(rate);
+    const { state, product_id, sample_id, input_id, pts, ptr, mrp, nrv, effective_from, effective_to, isActive } = req.body;
+    await rate.update({
+      state: state || rate.state,
+      product_id: product_id !== undefined ? product_id : rate.product_id,
+      sample_id: sample_id !== undefined ? sample_id : rate.sample_id,
+      input_id: input_id !== undefined ? input_id : rate.input_id,
+      pts: pts !== undefined ? pts : rate.pts,
+      ptr: ptr !== undefined ? ptr : rate.ptr,
+      mrp: mrp !== undefined ? mrp : rate.mrp,
+      nrv: nrv !== undefined ? nrv : rate.nrv,
+      effective_from: effective_from || rate.effective_from,
+      effective_to: effective_to !== undefined ? effective_to : rate.effective_to,
+      isActive: isActive !== undefined ? isActive : rate.isActive,
+      updated_by: req.user.id
+    });
+    await auditUpdate('rate_fixations', rate.id, req.user.id, oldValue, rate);
+
+    res.json(rate);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Inactivate rate fixation
+router.delete('/rate-fixations/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const rate = await RateFixation.findByPk(req.params.id);
+    if (!rate) {
+      return res.status(404).json({ error: 'Rate fixation not found' });
+    }
+
+    await softDelete(rate, 'rate_fixations', req.user.id, { updated_by: req.user.id });
+    res.json({ message: 'Rate fixation inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==================== AUDIT LOG ROUTES ====================
+
+// Get audit logs (Admin only)
+router.get('/audit-logs', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const { table_name, record_id, changed_by, limit = 100 } = req.query;
+    const where = {};
+
+    if (table_name) where.table_name = table_name;
+    if (record_id) where.record_id = record_id;
+    if (changed_by) where.changed_by = changed_by;
+
+    const logs = await AuditLog.findAll({
+      where,
+      include: [
+        { model: require('../models').User, as: 'user', attributes: ['id', 'firstName', 'lastName'] }
+      ],
+      order: [['change_date', 'DESC']],
+      limit: parseInt(limit)
+    });
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

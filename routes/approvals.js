@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { ApprovalQueue, ApprovalHistory, Doctor, User } = require('../models');
+const { ApprovalQueue, ApprovalHistory, Doctor, Chemist, Territory, Headquarter, Patch, Stockist, Hospital, SVL, InputAllocation, NoticeUpload, SOPPolicy, RateFixation, User } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
 
 // Role hierarchy levels
@@ -275,6 +275,29 @@ router.get('/history/:entityType/:entityId', authenticate, async (req, res) => {
 
 // Helper function to process entity after final approval
 async function processEntityApproval(entityType, entityId, status) {
+  const modelMap = {
+    doctor: Doctor,
+    chemist: Chemist,
+    territory: Territory,
+    headquarter: Headquarter,
+    patch: Patch,
+    stockist: Stockist,
+    hospital: Hospital,
+    svl: SVL,
+    input_allocation: InputAllocation,
+    notice: NoticeUpload,
+    sop_policy: SOPPolicy,
+    rate_fixation: RateFixation
+  };
+
+  const model = modelMap[entityType];
+  if (model && status === 'approved') {
+    const update = { isActive: true };
+    if (entityType === 'doctor') update.approval_status = 'approved';
+    await model.update(update, { where: { id: entityId } });
+    return;
+  }
+
   switch (entityType) {
     case 'doctor':
       if (status === 'approved') {

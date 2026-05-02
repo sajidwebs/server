@@ -72,9 +72,58 @@ const Doctor = sequelize.define('Doctor', {
       isEmail: true
     }
   },
+  registration_number: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  mobile_number: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  state: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  patch_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  full_address: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  visit_time: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  visit_day: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  patients_per_week: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  dob: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  anniversary: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  // Effective Dating
+  start_date: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  end_date: {
+    type: DataTypes.DATE,
+    allowNull: true
   },
   // Approval Workflow Fields
   approval_status: {

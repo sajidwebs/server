@@ -69,7 +69,39 @@ async function runMigration() {
     `CREATE TABLE IF NOT EXISTS work_type_setup (id SERIAL PRIMARY KEY, designation VARCHAR(50) NOT NULL, field_work_days INTEGER DEFAULT 24, office_work_days INTEGER DEFAULT 4, total_working_days INTEGER, mandatory_field_days BOOLEAN DEFAULT true, effective_from DATE, effective_to DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
     `CREATE TABLE IF NOT EXISTS work_type_master (id SERIAL PRIMARY KEY, type_name VARCHAR(50) NOT NULL, short_name VARCHAR(10), description TEXT, requires_gps BOOLEAN DEFAULT false, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
     `CREATE TABLE IF NOT EXISTS leave_policy_master (id SERIAL PRIMARY KEY, leave_type VARCHAR(20) NOT NULL, leave_type_name VARCHAR(50), probation_allowed BOOLEAN DEFAULT false, regular_allowed BOOLEAN DEFAULT true, max_days_per_month INTEGER DEFAULT 2, max_days_per_year INTEGER DEFAULT 12, carry_forward BOOLEAN DEFAULT true, max_carry_forward_days INTEGER, approval_required BOOLEAN DEFAULT true, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS user_leave_balance (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, leave_type VARCHAR(20) NOT NULL, year INTEGER NOT NULL, total_allocated INTEGER DEFAULT 0, used INTEGER DEFAULT 0, balance INTEGER DEFAULT 0, carry_forwarded INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+    `CREATE TABLE IF NOT EXISTS user_leave_balance (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, leave_type VARCHAR(20) NOT NULL, year INTEGER NOT NULL, total_allocated INTEGER DEFAULT 0, used INTEGER DEFAULT 0, balance INTEGER DEFAULT 0, carry_forwarded INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    // New Master Data Tables
+    `CREATE TABLE IF NOT EXISTS patches (id SERIAL PRIMARY KEY, patch_name VARCHAR(255) NOT NULL, state VARCHAR(255) NOT NULL, hq_id INTEGER, pincode VARCHAR(10), start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS patch_headquarters (id SERIAL PRIMARY KEY, patch_id INTEGER NOT NULL, hq_id INTEGER NOT NULL, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(patch_id, hq_id))`,
+    `CREATE TABLE IF NOT EXISTS stockists (id SERIAL PRIMARY KEY, stockist_name VARCHAR(255) NOT NULL, mobile VARCHAR(15), contact_person VARCHAR(255), hq_id INTEGER, state VARCHAR(255), address TEXT, patch_id INTEGER, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS hospitals (id SERIAL PRIMARY KEY, hospital_name VARCHAR(255) NOT NULL, mobile VARCHAR(15), contact_person VARCHAR(255), hq_id INTEGER, state VARCHAR(255), address TEXT, patch_id INTEGER, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS svl (id SERIAL PRIMARY KEY, doctor_id INTEGER NOT NULL, hq_id INTEGER NOT NULL, visit_frequency VARCHAR(50) DEFAULT 'Weekly', priority INTEGER DEFAULT 1, year INTEGER, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(doctor_id, hq_id, year))`,
+    `CREATE TABLE IF NOT EXISTS input_allocations (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, input_id INTEGER NOT NULL, product_input VARCHAR(255), qty INTEGER NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, allocation_type VARCHAR(20) DEFAULT 'monthly', is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS notice_uploads (id SERIAL PRIMARY KEY, notice_id VARCHAR(255) NOT NULL UNIQUE, title VARCHAR(255) NOT NULL, notice_document VARCHAR(500), effective_date DATE NOT NULL, audience VARCHAR(50) DEFAULT 'all', is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS sop_policies (id SERIAL PRIMARY KEY, designation VARCHAR(255) NOT NULL, sop_document VARCHAR(500), probation_policy TEXT, regular_policy TEXT, whistle_blower_policy TEXT, start_date DATE NOT NULL, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS rate_fixations (id SERIAL PRIMARY KEY, state VARCHAR(255) NOT NULL, product_id INTEGER NOT NULL, sample_id INTEGER, input_id INTEGER, pts DECIMAL(10,2), ptr DECIMAL(10,2), mrp DECIMAL(10,2), nrv DECIMAL(10,2), effective_from DATE NOT NULL, effective_to DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS audit_logs (id SERIAL PRIMARY KEY, table_name VARCHAR(255) NOT NULL, record_id INTEGER NOT NULL, action VARCHAR(20) NOT NULL, changed_by INTEGER NOT NULL, change_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, old_value JSON, new_value JSON, field_name VARCHAR(255))`,
+    // New columns for existing tables
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS registration_number VARCHAR(255)`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS mobile_number VARCHAR(15)`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS state VARCHAR(255)`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS patch_id INTEGER`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS full_address TEXT`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS visit_time VARCHAR(50)`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS visit_day VARCHAR(50)`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS patients_per_week INTEGER`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS dob DATE`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS anniversary DATE`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS start_date DATE DEFAULT CURRENT_DATE`,
+    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS end_date DATE`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS contact_person VARCHAR(255)`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255)`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS dl_number VARCHAR(255)`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS state VARCHAR(255)`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS patch_id INTEGER`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS visit_time VARCHAR(50) DEFAULT 'Any time'`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS start_date DATE DEFAULT CURRENT_DATE`,
+    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS end_date DATE`
   ];
   for (const sql of migrations) {
     try {

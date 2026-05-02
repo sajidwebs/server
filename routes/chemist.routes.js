@@ -1,9 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const { Chemist, Sale } = require('../models');
+const { Chemist, Sale, AuditLog } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const { validateChemist } = require('../middleware/validation');
 const sequelize = require('../config/database');
+
+const toPlain = (record) => record ? record.get({ plain: true }) : null;
+
+const logAudit = async (recordId, action, userId, oldValue = null, newValue = null) => {
+  try {
+    await AuditLog.create({
+      table_name: 'chemists',
+      record_id: recordId,
+      action,
+      changed_by: userId,
+      old_value: oldValue,
+      new_value: newValue
+    });
+  } catch (error) {
+    console.error('Chemist audit logging failed:', error.message);
+  }
+};
 
 // Auto-migrate chemists table before any query
 async function ensureChemistColumns() {
@@ -63,15 +80,31 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new chemist
 router.post('/', authenticate, validateChemist, async (req, res) => {
   try {
-    const { name, location, address, phone, email } = req.body;
+    const {
+      name, location, address, phone, email, contact_person, owner_name,
+      dl_number, state, patch_id, visit_time, hq_id, territory_id,
+      start_date, end_date
+    } = req.body;
     
     const chemist = await Chemist.create({
       name,
       location,
       address,
       phone,
-      email
+      email,
+      contact_person,
+      owner_name,
+      dl_number,
+      state,
+      patch_id,
+      visit_time: visit_time || 'Any time',
+      hq_id,
+      territory_id,
+      start_date,
+      end_date,
+      createdBy: req.user.id
     });
+    await logAudit(chemist.id, 'CREATE', req.user.id, null, toPlain(chemist));
     
     res.status(201).json({
       message: 'Chemist created successfully',
@@ -96,7 +129,12 @@ router.put('/:id', authenticate, validateChemist, async (req, res) => {
       });
     }
     
-    const { name, location, address, phone, email, isActive } = req.body;
+    const oldValue = toPlain(chemist);
+    const {
+      name, location, address, phone, email, contact_person, owner_name,
+      dl_number, state, patch_id, visit_time, hq_id, territory_id,
+      start_date, end_date, isActive
+    } = req.body;
     
     await chemist.update({
       name,
@@ -104,8 +142,19 @@ router.put('/:id', authenticate, validateChemist, async (req, res) => {
       address,
       phone,
       email,
+      contact_person,
+      owner_name,
+      dl_number,
+      state,
+      patch_id,
+      visit_time,
+      hq_id,
+      territory_id,
+      start_date,
+      end_date,
       isActive
     });
+    await logAudit(chemist.id, 'UPDATE', req.user.id, oldValue, toPlain(chemist));
     
     res.json({
       message: 'Chemist updated successfully',
@@ -141,10 +190,12 @@ router.delete('/:id', authenticate, async (req, res) => {
       });
     }
     
-    await chemist.destroy();
+    const oldValue = toPlain(chemist);
+    await chemist.update({ isActive: false, end_date: new Date() });
+    await logAudit(chemist.id, 'SOFT_DELETE', req.user.id, oldValue, toPlain(chemist));
     
     res.json({
-      message: 'Chemist deleted successfully'
+      message: 'Chemist inactivated successfully'
     });
   } catch (error) {
     console.error('Delete chemist error:', error);

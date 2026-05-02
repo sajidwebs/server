@@ -8,7 +8,7 @@ const ApprovalQueue = sequelize.define('ApprovalQueue', {
     autoIncrement: true
   },
   entity_type: {
-    type: DataTypes.ENUM('doctor', 'chemist', 'territory', 'headquarter', 'hospital'),
+    type: DataTypes.ENUM('doctor', 'chemist', 'territory', 'headquarter', 'patch', 'stockist', 'hospital', 'svl', 'input_allocation', 'notice', 'sop_policy', 'rate_fixation'),
     allowNull: false
   },
   entity_id: {

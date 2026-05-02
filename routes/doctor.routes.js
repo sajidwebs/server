@@ -1,9 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const { Doctor, Business, Sale } = require('../models');
+const { Doctor, Business, Sale, AuditLog } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const { validateDoctor } = require('../middleware/validation');
 const sequelize = require('../config/database');
+
+const toPlain = (record) => record ? record.get({ plain: true }) : null;
+
+const logAudit = async (recordId, action, userId, oldValue = null, newValue = null) => {
+  try {
+    await AuditLog.create({
+      table_name: 'doctors',
+      record_id: recordId,
+      action,
+      changed_by: userId,
+      old_value: oldValue,
+      new_value: newValue
+    });
+  } catch (error) {
+    console.error('Doctor audit logging failed:', error.message);
+  }
+};
 
 // Auto-migrate doctors table before any query
 async function ensureDoctorColumns() {
@@ -67,17 +84,44 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new doctor
 router.post('/', authenticate, validateDoctor, async (req, res) => {
   try {
-    const { firstName, lastName, specialty, location, address, phone, email } = req.body;
+    const {
+      firstName, lastName, specialty, specialty_id, category_id, qualification_id, class_id,
+      territory_id, hq_id, location, address, phone, email, registration_number,
+      mobile_number, state, patch_id, full_address, visit_time, visit_day,
+      patients_per_week, dob, anniversary, start_date, end_date
+    } = req.body;
     
     const doctor = await Doctor.create({
       firstName,
       lastName,
       specialty,
+      specialty_id,
+      category_id,
+      qualification_id,
+      class_id,
+      territory_id,
+      hq_id,
       location,
       address,
       phone,
-      email
+      email,
+      registration_number,
+      mobile_number,
+      state,
+      patch_id,
+      full_address,
+      visit_time,
+      visit_day,
+      patients_per_week,
+      dob,
+      anniversary,
+      start_date,
+      end_date,
+      created_by: req.user.id,
+      approval_status: req.user.role === 'ADMIN' ? 'approved' : 'pending',
+      current_approval_level: req.user.role === 'ADMIN' ? 0 : 1
     });
+    await logAudit(doctor.id, 'CREATE', req.user.id, null, toPlain(doctor));
     
     res.status(201).json({
       message: 'Doctor created successfully',
@@ -102,18 +146,43 @@ router.put('/:id', authenticate, validateDoctor, async (req, res) => {
       });
     }
     
-    const { firstName, lastName, specialty, location, address, phone, email, isActive } = req.body;
+    const oldValue = toPlain(doctor);
+    const {
+      firstName, lastName, specialty, specialty_id, category_id, qualification_id, class_id,
+      territory_id, hq_id, location, address, phone, email, registration_number,
+      mobile_number, state, patch_id, full_address, visit_time, visit_day,
+      patients_per_week, dob, anniversary, start_date, end_date, isActive
+    } = req.body;
     
     await doctor.update({
       firstName,
       lastName,
       specialty,
+      specialty_id,
+      category_id,
+      qualification_id,
+      class_id,
+      territory_id,
+      hq_id,
       location,
       address,
       phone,
       email,
+      registration_number,
+      mobile_number,
+      state,
+      patch_id,
+      full_address,
+      visit_time,
+      visit_day,
+      patients_per_week,
+      dob,
+      anniversary,
+      start_date,
+      end_date,
       isActive
     });
+    await logAudit(doctor.id, 'UPDATE', req.user.id, oldValue, toPlain(doctor));
     
     res.json({
       message: 'Doctor updated successfully',
@@ -149,10 +218,12 @@ router.delete('/:id', authenticate, async (req, res) => {
       });
     }
     
-    await doctor.destroy();
+    const oldValue = toPlain(doctor);
+    await doctor.update({ isActive: false, end_date: new Date() });
+    await logAudit(doctor.id, 'SOFT_DELETE', req.user.id, oldValue, toPlain(doctor));
     
     res.json({
-      message: 'Doctor deleted successfully'
+      message: 'Doctor inactivated successfully'
     });
   } catch (error) {
     console.error('Delete doctor error:', error);
