@@ -38,6 +38,10 @@ const Stockist = sequelize.define('Stockist', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  territory_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   // Effective Dating
   start_date: {
     type: DataTypes.DATE,

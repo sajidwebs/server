@@ -331,6 +331,28 @@ Chemist.belongsTo(Territory, {
   as: 'territory'
 });
 
+// Territory - Stockist
+Territory.hasMany(Stockist, {
+  foreignKey: 'territory_id',
+  as: 'stockists'
+});
+
+Stockist.belongsTo(Territory, {
+  foreignKey: 'territory_id',
+  as: 'territory'
+});
+
+// Territory - Hospital
+Territory.hasMany(Hospital, {
+  foreignKey: 'territory_id',
+  as: 'hospitals'
+});
+
+Hospital.belongsTo(Territory, {
+  foreignKey: 'territory_id',
+  as: 'territory'
+});
+
 // Territory - User
 Territory.hasMany(User, {
   foreignKey: 'territory_id',

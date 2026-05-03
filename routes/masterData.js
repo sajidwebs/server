@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Territory, Headquarter, Chemist, Product, Activity, Hospital, InputType, InputClass, InputMaster, SampleMaster, PackSize, Patch, Stockist, SVL, InputAllocation, NoticeUpload, SOPPolicy, AuditLog, PatchHeadquarter, RateFixation, User } = require('../models');
+const sequelize = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 
 // Audit logging helper function
@@ -39,6 +40,11 @@ const auditCreate = async (tableName, record, userId) => {
 
 const auditUpdate = async (tableName, recordId, userId, oldValue, record) => {
   await logAudit(tableName, recordId, 'UPDATE', userId, oldValue, toPlain(record));
+};
+
+const ensureStockistHospitalTerritoryColumns = async () => {
+  await sequelize.query(`ALTER TABLE stockists ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
+  await sequelize.query(`ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
 };
 
 // ==================== DOCTOR CLASS ROUTES ====================
@@ -1209,17 +1215,20 @@ router.delete('/patches/:id/headquarters/:hqId', authenticate, authorize(['ADMIN
 // Get all stockists (open to all authenticated users)
 router.get('/stockists', authenticate, async (req, res) => {
   try {
-    const { status, hq_id, state } = req.query;
+    await ensureStockistHospitalTerritoryColumns();
+    const { status, hq_id, state, territory_id } = req.query;
     const where = {};
 
     if (status) where.isActive = status === 'active';
     if (hq_id) where.hq_id = hq_id;
     if (state) where.state = state;
+    if (territory_id) where.territory_id = territory_id;
 
     const stockists = await Stockist.findAll({
       where,
       include: [
         { model: Headquarter, as: 'headquarter', attributes: ['id', 'name'] },
+        { model: Territory, as: 'territory', attributes: ['id', 'name', 'code'] },
         { model: Patch, as: 'patch', attributes: ['id', 'patch_name'] }
       ],
       order: [['stockist_name', 'ASC']]
@@ -1233,9 +1242,11 @@ router.get('/stockists', authenticate, async (req, res) => {
 // Get single stockist
 router.get('/stockists/:id', authenticate, async (req, res) => {
   try {
+    await ensureStockistHospitalTerritoryColumns();
     const stockist = await Stockist.findByPk(req.params.id, {
       include: [
         { model: Headquarter, as: 'headquarter' },
+        { model: Territory, as: 'territory' },
         { model: Patch, as: 'patch' }
       ]
     });
@@ -1251,7 +1262,8 @@ router.get('/stockists/:id', authenticate, async (req, res) => {
 // Create stockist (Admin only)
 router.post('/stockists', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    const { stockist_name, mobile, contact_person, hq_id, state, address, patch_id } = req.body;
+    await ensureStockistHospitalTerritoryColumns();
+    const { stockist_name, mobile, contact_person, hq_id, state, address, patch_id, territory_id } = req.body;
 
     const stockist = await Stockist.create({
       stockist_name,
@@ -1261,6 +1273,7 @@ router.post('/stockists', authenticate, authorize(['ADMIN']), async (req, res) =
       state,
       address,
       patch_id,
+      territory_id,
       created_by: req.user.id
     });
     await auditCreate('stockists', stockist, req.user.id);
@@ -1274,13 +1287,14 @@ router.post('/stockists', authenticate, authorize(['ADMIN']), async (req, res) =
 // Update stockist (Admin only)
 router.put('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
+    await ensureStockistHospitalTerritoryColumns();
     const stockist = await Stockist.findByPk(req.params.id);
     if (!stockist) {
       return res.status(404).json({ error: 'Stockist not found' });
     }
 
     const oldValue = toPlain(stockist);
-    const { stockist_name, mobile, contact_person, hq_id, state, address, patch_id, isActive } = req.body;
+    const { stockist_name, mobile, contact_person, hq_id, state, address, patch_id, territory_id, isActive } = req.body;
     await stockist.update({
       stockist_name: stockist_name || stockist.stockist_name,
       mobile: mobile || stockist.mobile,
@@ -1289,6 +1303,7 @@ router.put('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, res
       state: state || stockist.state,
       address: address || stockist.address,
       patch_id: patch_id !== undefined ? patch_id : stockist.patch_id,
+      territory_id: territory_id !== undefined ? territory_id : stockist.territory_id,
       isActive: isActive !== undefined ? isActive : stockist.isActive
     });
     await auditUpdate('stockists', stockist.id, req.user.id, oldValue, stockist);
@@ -1319,17 +1334,20 @@ router.delete('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, 
 // Get all hospitals (open to all authenticated users)
 router.get('/hospitals', authenticate, async (req, res) => {
   try {
-    const { status, hq_id, state } = req.query;
+    await ensureStockistHospitalTerritoryColumns();
+    const { status, hq_id, state, territory_id } = req.query;
     const where = {};
 
     if (status) where.isActive = status === 'active';
     if (hq_id) where.hq_id = hq_id;
     if (state) where.state = state;
+    if (territory_id) where.territory_id = territory_id;
 
     const hospitals = await Hospital.findAll({
       where,
       include: [
         { model: Headquarter, as: 'headquarter', attributes: ['id', 'name'] },
+        { model: Territory, as: 'territory', attributes: ['id', 'name', 'code'] },
         { model: Patch, as: 'patch', attributes: ['id', 'patch_name'] }
       ],
       order: [['hospital_name', 'ASC']]
@@ -1343,9 +1361,11 @@ router.get('/hospitals', authenticate, async (req, res) => {
 // Get single hospital
 router.get('/hospitals/:id', authenticate, async (req, res) => {
   try {
+    await ensureStockistHospitalTerritoryColumns();
     const hospital = await Hospital.findByPk(req.params.id, {
       include: [
         { model: Headquarter, as: 'headquarter' },
+        { model: Territory, as: 'territory' },
         { model: Patch, as: 'patch' }
       ]
     });
@@ -1361,7 +1381,8 @@ router.get('/hospitals/:id', authenticate, async (req, res) => {
 // Create hospital (Admin only)
 router.post('/hospitals', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    const { hospital_name, mobile, contact_person, hq_id, state, address, patch_id } = req.body;
+    await ensureStockistHospitalTerritoryColumns();
+    const { hospital_name, mobile, contact_person, hq_id, state, address, patch_id, territory_id } = req.body;
 
     const hospital = await Hospital.create({
       hospital_name,
@@ -1371,6 +1392,7 @@ router.post('/hospitals', authenticate, authorize(['ADMIN']), async (req, res) =
       state,
       address,
       patch_id,
+      territory_id,
       created_by: req.user.id
     });
     await auditCreate('hospitals', hospital, req.user.id);
@@ -1384,13 +1406,14 @@ router.post('/hospitals', authenticate, authorize(['ADMIN']), async (req, res) =
 // Update hospital (Admin only)
 router.put('/hospitals/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
+    await ensureStockistHospitalTerritoryColumns();
     const hospital = await Hospital.findByPk(req.params.id);
     if (!hospital) {
       return res.status(404).json({ error: 'Hospital not found' });
     }
 
     const oldValue = toPlain(hospital);
-    const { hospital_name, mobile, contact_person, hq_id, state, address, patch_id, isActive } = req.body;
+    const { hospital_name, mobile, contact_person, hq_id, state, address, patch_id, territory_id, isActive } = req.body;
     await hospital.update({
       hospital_name: hospital_name || hospital.hospital_name,
       mobile: mobile || hospital.mobile,
@@ -1399,6 +1422,7 @@ router.put('/hospitals/:id', authenticate, authorize(['ADMIN']), async (req, res
       state: state || hospital.state,
       address: address || hospital.address,
       patch_id: patch_id !== undefined ? patch_id : hospital.patch_id,
+      territory_id: territory_id !== undefined ? territory_id : hospital.territory_id,
       isActive: isActive !== undefined ? isActive : hospital.isActive
     });
     await auditUpdate('hospitals', hospital.id, req.user.id, oldValue, hospital);
@@ -1920,6 +1944,8 @@ router.post('/migrate', authenticate, authorize(['ADMIN']), async (req, res) => 
     await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
     await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
     await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
+
+    await ensureStockistHospitalTerritoryColumns();
     
     res.json({ message: 'Migration completed successfully' });
   } catch (error) {
