@@ -40,6 +40,7 @@ const ensureSalesTables = async () => {
       financial_year VARCHAR(20) NOT NULL, month INTEGER NOT NULL, opening_strip INTEGER DEFAULT 0,
       opening_value DECIMAL(14,2) DEFAULT 0, sale_strip INTEGER DEFAULT 0, sale_value DECIMAL(14,2) DEFAULT 0,
       closing_strip INTEGER DEFAULT 0, closing_value DECIMAL(14,2) DEFAULT 0, rate DECIMAL(12,2) DEFAULT 0,
+      state VARCHAR(255), region VARCHAR(255), zone VARCHAR(255), division VARCHAR(255),
       created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS expiry_entries (
@@ -58,6 +59,13 @@ const ensureSalesTables = async () => {
   ];
 
   for (const query of queries) await sequelize.query(query);
+  const alterQueries = [
+    'ALTER TABLE secondary_sales ADD COLUMN IF NOT EXISTS state VARCHAR(255)',
+    'ALTER TABLE secondary_sales ADD COLUMN IF NOT EXISTS region VARCHAR(255)',
+    'ALTER TABLE secondary_sales ADD COLUMN IF NOT EXISTS zone VARCHAR(255)',
+    'ALTER TABLE secondary_sales ADD COLUMN IF NOT EXISTS division VARCHAR(255)'
+  ];
+  for (const query of alterQueries) await sequelize.query(query);
 };
 
 const parseNumber = (value) => Number(value || 0);
@@ -125,6 +133,16 @@ const selectRows = async (table, req, extraWhere = '1=1', extraParams = {}) => {
     params.user_id = Number(req.query.user_id);
   }
   if (['sales_targets', 'sales_projection_entries', 'secondary_sales'].includes(table)) {
+    if (req.query.hq_id && req.query.hq_id !== 'all') {
+      where += ' AND hq_id = :hq_id';
+      params.hq_id = Number(req.query.hq_id);
+    }
+    if (req.query.state && req.query.state !== 'all') {
+      where += ' AND state = :state';
+      params.state = req.query.state;
+    }
+  }
+  if (['sales_targets', 'sales_projection_entries', 'secondary_sales'].includes(table)) {
     ({ where, params } = await appendVisibility(req, where, params));
   }
 
@@ -143,6 +161,28 @@ const insertRow = async (table, payload) => {
     { replacements: payload, type: QueryTypes.SELECT }
   );
   return row;
+};
+
+const isMonthLocked = async (financialYear, month) => {
+  if (!financialYear || !month) return false;
+  await ensureSalesTables();
+  const [lock] = await sequelize.query(
+    'SELECT is_locked FROM sales_month_locks WHERE financial_year = :financialYear AND month = :month',
+    { replacements: { financialYear, month: Number(month) }, type: QueryTypes.SELECT }
+  );
+  return lock?.is_locked === true;
+};
+
+const assertMonthOpen = async (financialYear, month) => {
+  if (await isMonthLocked(financialYear, month)) {
+    const error = new Error('This sales month is frozen. Unlock the month before adding or updating sales entries.');
+    error.statusCode = 423;
+    throw error;
+  }
+};
+
+const handleRouteError = (res, error, fallback) => {
+  res.status(error.statusCode || 500).json({ message: error.message || fallback });
 };
 
 const applyGeo = async (payload) => {
@@ -230,76 +270,109 @@ router.post('/', authenticate, async (req, res) => {
 });
 
 router.get('/targets', authenticate, async (req, res) => res.json({ targets: await selectRows('sales_targets', req) }));
-router.post('/targets', authenticate, async (req, res) => res.status(201).json({ target: await insertRow('sales_targets', await makeTargetPayload(req.body, req.user)) }));
+router.post('/targets', authenticate, async (req, res) => {
+  try {
+    await assertMonthOpen(req.body.financial_year, req.body.month);
+    res.status(201).json({ target: await insertRow('sales_targets', await makeTargetPayload(req.body, req.user)) });
+  } catch (error) {
+    handleRouteError(res, error, 'Error creating target');
+  }
+});
 
 router.get('/module-projections', authenticate, async (req, res) => res.json({ projections: await selectRows('sales_projection_entries', req) }));
-router.post('/module-projections', authenticate, async (req, res) => res.status(201).json({ projection: await insertRow('sales_projection_entries', await makeProjectionPayload(req.body, req.user)) }));
+router.post('/module-projections', authenticate, async (req, res) => {
+  try {
+    await assertMonthOpen(req.body.financial_year, req.body.month);
+    res.status(201).json({ projection: await insertRow('sales_projection_entries', await makeProjectionPayload(req.body, req.user)) });
+  } catch (error) {
+    handleRouteError(res, error, 'Error creating projection');
+  }
+});
 
 router.get('/primary', authenticate, async (req, res) => res.json({ primarySales: await selectRows('primary_sales', req) }));
 router.post('/primary', authenticate, async (req, res) => {
-  const saleDate = req.body.sale_date || new Date().toISOString().slice(0, 10);
-  const quantity = parseNumber(req.body.quantity_strip);
-  const rate = parseNumber(req.body.rate);
-  const primarySale = await insertRow('primary_sales', {
-    stockist_id: req.body.stockist_id || null,
-    invoice_no: req.body.invoice_no,
-    product_id: req.body.product_id,
-    batch_number: req.body.batch_number || null,
-    quantity_strip: quantity,
-    rate,
-    total_value: money(req.body.total_value || quantity * rate),
-    sale_date: saleDate,
-    financial_year: req.body.financial_year || financialYearFromDate(saleDate),
-    month: req.body.month || monthFromDate(saleDate),
-    created_by: req.user.id
-  });
-  res.status(201).json({ primarySale });
+  try {
+    const saleDate = req.body.sale_date || new Date().toISOString().slice(0, 10);
+    const financialYear = req.body.financial_year || financialYearFromDate(saleDate);
+    const month = req.body.month || monthFromDate(saleDate);
+    await assertMonthOpen(financialYear, month);
+    const quantity = parseNumber(req.body.quantity_strip);
+    const rate = parseNumber(req.body.rate);
+    const primarySale = await insertRow('primary_sales', {
+      stockist_id: req.body.stockist_id || null,
+      invoice_no: req.body.invoice_no,
+      product_id: req.body.product_id,
+      batch_number: req.body.batch_number || null,
+      quantity_strip: quantity,
+      rate,
+      total_value: money(req.body.total_value || quantity * rate),
+      sale_date: saleDate,
+      financial_year: financialYear,
+      month,
+      created_by: req.user.id
+    });
+    res.status(201).json({ primarySale });
+  } catch (error) {
+    handleRouteError(res, error, 'Error creating primary sale');
+  }
 });
 
 router.get('/secondary', authenticate, async (req, res) => res.json({ secondarySales: await selectRows('secondary_sales', req) }));
 router.post('/secondary', authenticate, async (req, res) => {
-  const rate = parseNumber(req.body.rate);
-  const openingStrip = parseNumber(req.body.opening_strip);
-  const saleStrip = parseNumber(req.body.sale_strip);
-  const closingStrip = req.body.closing_strip !== undefined ? parseNumber(req.body.closing_strip) : Math.max(openingStrip - saleStrip, 0);
-  const payload = await applyGeo({
-    hq_id: req.body.hq_id || null,
-    user_id: req.body.user_id || req.user.id,
-    stockist_id: req.body.stockist_id || null,
-    product_id: req.body.product_id,
-    financial_year: req.body.financial_year,
-    month: Number(req.body.month),
-    opening_strip: openingStrip,
-    opening_value: money(req.body.opening_value || openingStrip * rate),
-    sale_strip: saleStrip,
-    sale_value: money(req.body.sale_value || saleStrip * rate),
-    closing_strip: closingStrip,
-    closing_value: money(req.body.closing_value || closingStrip * rate),
-    rate,
-    created_by: req.user.id
-  });
-  res.status(201).json({ secondarySale: await insertRow('secondary_sales', payload) });
+  try {
+    await assertMonthOpen(req.body.financial_year, req.body.month);
+    const rate = parseNumber(req.body.rate);
+    const openingStrip = parseNumber(req.body.opening_strip);
+    const saleStrip = parseNumber(req.body.sale_strip);
+    const closingStrip = req.body.closing_strip !== undefined ? parseNumber(req.body.closing_strip) : Math.max(openingStrip - saleStrip, 0);
+    const payload = await applyGeo({
+      hq_id: req.body.hq_id || null,
+      user_id: req.body.user_id || req.user.id,
+      stockist_id: req.body.stockist_id || null,
+      product_id: req.body.product_id,
+      financial_year: req.body.financial_year,
+      month: Number(req.body.month),
+      opening_strip: openingStrip,
+      opening_value: money(req.body.opening_value || openingStrip * rate),
+      sale_strip: saleStrip,
+      sale_value: money(req.body.sale_value || saleStrip * rate),
+      closing_strip: closingStrip,
+      closing_value: money(req.body.closing_value || closingStrip * rate),
+      rate,
+      created_by: req.user.id
+    });
+    res.status(201).json({ secondarySale: await insertRow('secondary_sales', payload) });
+  } catch (error) {
+    handleRouteError(res, error, 'Error creating secondary sale');
+  }
 });
 
 router.get('/expiry', authenticate, async (req, res) => res.json({ expiryEntries: await selectRows('expiry_entries', req) }));
 router.post('/expiry', authenticate, async (req, res) => {
-  const entryDate = req.body.entry_date || new Date().toISOString().slice(0, 10);
-  const quantity = parseNumber(req.body.quantity_strip);
-  const rate = parseNumber(req.body.rate);
-  const expiryEntry = await insertRow('expiry_entries', {
-    stockist_id: req.body.stockist_id || null,
-    credit_note_no: req.body.credit_note_no,
-    product_id: req.body.product_id,
-    batch_number: req.body.batch_number || null,
-    quantity_strip: quantity,
-    rate,
-    total_value: money(req.body.total_value || quantity * rate),
-    entry_date: entryDate,
-    financial_year: req.body.financial_year || financialYearFromDate(entryDate),
-    month: req.body.month || monthFromDate(entryDate),
-    created_by: req.user.id
-  });
-  res.status(201).json({ expiryEntry });
+  try {
+    const entryDate = req.body.entry_date || new Date().toISOString().slice(0, 10);
+    const financialYear = req.body.financial_year || financialYearFromDate(entryDate);
+    const month = req.body.month || monthFromDate(entryDate);
+    await assertMonthOpen(financialYear, month);
+    const quantity = parseNumber(req.body.quantity_strip);
+    const rate = parseNumber(req.body.rate);
+    const expiryEntry = await insertRow('expiry_entries', {
+      stockist_id: req.body.stockist_id || null,
+      credit_note_no: req.body.credit_note_no,
+      product_id: req.body.product_id,
+      batch_number: req.body.batch_number || null,
+      quantity_strip: quantity,
+      rate,
+      total_value: money(req.body.total_value || quantity * rate),
+      entry_date: entryDate,
+      financial_year: financialYear,
+      month,
+      created_by: req.user.id
+    });
+    res.status(201).json({ expiryEntry });
+  } catch (error) {
+    handleRouteError(res, error, 'Error creating expiry entry');
+  }
 });
 
 router.get('/locks', authenticate, async (req, res) => {
@@ -310,13 +383,23 @@ router.get('/locks', authenticate, async (req, res) => {
 
 router.post('/locks', authenticate, async (req, res) => {
   await ensureSalesTables();
-  const lock = await insertRow('sales_month_locks', {
-    financial_year: req.body.financial_year,
-    month: Number(req.body.month),
-    is_locked: req.body.is_locked === true,
-    locked_by: req.user.id,
-    locked_at: req.body.is_locked ? new Date() : null
-  });
+  const [lock] = await sequelize.query(
+    `INSERT INTO sales_month_locks (financial_year, month, is_locked, locked_by, locked_at, updated_at)
+     VALUES (:financial_year, :month, :is_locked, :locked_by, :locked_at, CURRENT_TIMESTAMP)
+     ON CONFLICT (financial_year, month)
+     DO UPDATE SET is_locked = EXCLUDED.is_locked, locked_by = EXCLUDED.locked_by, locked_at = EXCLUDED.locked_at, updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    {
+      replacements: {
+        financial_year: req.body.financial_year,
+        month: Number(req.body.month),
+        is_locked: req.body.is_locked === true,
+        locked_by: req.user.id,
+        locked_at: req.body.is_locked ? new Date() : null
+      },
+      type: QueryTypes.SELECT
+    }
+  );
   res.status(201).json({ lock });
 });
 
@@ -324,15 +407,26 @@ router.get('/dashboard', authenticate, async (req, res) => {
   await ensureSalesTables();
   const params = {
     financial_year: req.query.financial_year || financialYearFromDate(),
-    month: Number(req.query.month || new Date().getMonth() + 1)
+    month: Number(req.query.month || new Date().getMonth() + 1),
+    product_id: req.query.product_id && req.query.product_id !== 'all' ? Number(req.query.product_id) : null,
+    user_id: req.query.user_id && req.query.user_id !== 'all' ? Number(req.query.user_id) : null,
+    hq_id: req.query.hq_id && req.query.hq_id !== 'all' ? Number(req.query.hq_id) : null,
+    division_id: req.query.division_id && req.query.division_id !== 'all' ? Number(req.query.division_id) : null,
+    state: req.query.state && req.query.state !== 'all' ? req.query.state : null
   };
+  const productFilter = params.product_id ? ' AND product_id = :product_id' : '';
+  const userFilter = params.user_id ? ' AND user_id = :user_id' : '';
+  const hqFilter = params.hq_id ? ' AND hq_id = :hq_id' : '';
+  const stateFilter = params.state ? ' AND state = :state' : '';
+  const divisionFilter = params.division_id ? ' AND product_id IN (SELECT id FROM products WHERE division_id = :division_id)' : '';
   const [summary] = await sequelize.query(
     `SELECT
-      COALESCE((SELECT SUM(target_value) FROM sales_targets WHERE financial_year = :financial_year AND month = :month), 0) AS target,
-      COALESCE((SELECT SUM(projection_value) FROM sales_projection_entries WHERE financial_year = :financial_year AND month = :month), 0) AS projection,
-      COALESCE((SELECT SUM(sale_value) FROM secondary_sales WHERE financial_year = :financial_year AND month = :month), 0) AS achieved,
-      COALESCE((SELECT SUM(total_value) FROM primary_sales WHERE financial_year = :financial_year AND month = :month), 0) AS primary_sale,
-      COALESCE((SELECT SUM(total_value) FROM expiry_entries WHERE financial_year = :financial_year AND month = :month), 0) AS expiry_value`,
+      COALESCE((SELECT SUM(target_value) FROM sales_targets WHERE financial_year = :financial_year AND month = :month${productFilter}${userFilter}${hqFilter}${stateFilter}${divisionFilter}), 0) AS target,
+      COALESCE((SELECT SUM(projection_value) FROM sales_projection_entries WHERE financial_year = :financial_year AND month = :month${productFilter}${userFilter}${hqFilter}${stateFilter}${divisionFilter}), 0) AS projection,
+      COALESCE((SELECT SUM(sale_value) FROM secondary_sales WHERE financial_year = :financial_year AND month = :month${productFilter}${userFilter}${hqFilter}${stateFilter}${divisionFilter}), 0) AS achieved,
+      COALESCE((SELECT SUM(total_value) FROM primary_sales WHERE financial_year = :financial_year AND month = :month${productFilter}${divisionFilter}), 0) AS primary_sale,
+      COALESCE((SELECT SUM(total_value) FROM expiry_entries WHERE financial_year = :financial_year AND month = :month${productFilter}${divisionFilter}), 0) AS expiry_value,
+      COALESCE((SELECT is_locked FROM sales_month_locks WHERE financial_year = :financial_year AND month = :month), false) AS is_locked`,
     { replacements: params, type: QueryTypes.SELECT }
   );
   const target = parseNumber(summary.target);
@@ -350,6 +444,25 @@ router.get('/dashboard', authenticate, async (req, res) => {
 router.get('/reports', authenticate, async (req, res) => {
   await ensureSalesTables();
   const financialYear = req.query.financial_year || financialYearFromDate();
+  const where = [];
+  const params = { financialYear };
+  if (req.query.product_id && req.query.product_id !== 'all') {
+    where.push('p.id = :product_id');
+    params.product_id = Number(req.query.product_id);
+  }
+  if (req.query.division_id && req.query.division_id !== 'all') {
+    where.push('p.division_id = :division_id');
+    params.division_id = Number(req.query.division_id);
+  }
+  if (req.query.state && req.query.state !== 'all') {
+    where.push('(t.state = :state OR pr.state = :state OR s.state = :state)');
+    params.state = req.query.state;
+  }
+  if (req.query.hq_id && req.query.hq_id !== 'all') {
+    where.push('(t.hq_id = :hq_id OR pr.hq_id = :hq_id OR s.hq_id = :hq_id)');
+    params.hq_id = Number(req.query.hq_id);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const rows = await sequelize.query(
     `SELECT p.id AS product_id, p.name AS product_name,
       COALESCE(SUM(t.target_value), 0) AS target_value,
@@ -361,9 +474,10 @@ router.get('/reports', authenticate, async (req, res) => {
     LEFT JOIN sales_projection_entries pr ON pr.product_id = p.id AND pr.financial_year = :financialYear
     LEFT JOIN secondary_sales s ON s.product_id = p.id AND s.financial_year = :financialYear
     LEFT JOIN expiry_entries e ON e.product_id = p.id AND e.financial_year = :financialYear
+    ${whereSql}
     GROUP BY p.id, p.name
     ORDER BY p.name ASC`,
-    { replacements: { financialYear }, type: QueryTypes.SELECT }
+    { replacements: params, type: QueryTypes.SELECT }
   );
   const report = rows.map((row) => {
     const target = parseNumber(row.target_value);
