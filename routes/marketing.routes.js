@@ -145,6 +145,16 @@ router.get('/strategies', authenticate, async (req, res) => {
   }
 });
 
+router.get('/strategies/:id', authenticate, async (req, res) => {
+  try {
+    const strategy = await MarketingBrandStrategy.findByPk(req.params.id);
+    if (!strategy) return res.status(404).json({ error: 'Brand strategy not found' });
+    res.json(strategy);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/strategies', authenticate, authorize(writeRoles), async (req, res) => {
   try {
     const strategy = await MarketingBrandStrategy.create({ ...req.body, created_by: req.user.id });
@@ -165,6 +175,17 @@ router.put('/strategies/:id', authenticate, authorize(writeRoles), async (req, r
   }
 });
 
+router.delete('/strategies/:id', authenticate, authorize(writeRoles), async (req, res) => {
+  try {
+    const strategy = await MarketingBrandStrategy.findByPk(req.params.id);
+    if (!strategy) return res.status(404).json({ error: 'Brand strategy not found' });
+    await strategy.update({ status: 'inactive', updated_by: req.user.id });
+    res.json({ message: 'Brand strategy inactivated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 router.get('/rcpa', authenticate, async (req, res) => {
   try {
     const rcpas = await MarketingRCPA.findAll({
@@ -175,6 +196,21 @@ router.get('/rcpa', authenticate, async (req, res) => {
       order: [['created_at', 'DESC']]
     });
     res.json(rcpas);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/rcpa/:id', authenticate, async (req, res) => {
+  try {
+    const rcpa = await MarketingRCPA.findByPk(req.params.id, {
+      include: [
+        { model: Product, as: 'product', attributes: ['id', 'name', 'code'] },
+        { model: MarketingRCPAEntry, as: 'entries' }
+      ]
+    });
+    if (!rcpa) return res.status(404).json({ error: 'RCPA not found' });
+    res.json(rcpa);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -195,6 +231,17 @@ router.put('/rcpa/:id', authenticate, authorize(marketingRoles), async (req, res
     if (!rcpa) return res.status(404).json({ error: 'RCPA not found' });
     await rcpa.update({ ...req.body, updated_by: req.user.id });
     res.json(rcpa);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/rcpa/:id', authenticate, authorize(marketingRoles), async (req, res) => {
+  try {
+    const rcpa = await MarketingRCPA.findByPk(req.params.id);
+    if (!rcpa) return res.status(404).json({ error: 'RCPA not found' });
+    await rcpa.update({ status: 'closed', updated_by: req.user.id });
+    res.json({ message: 'RCPA closed successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -230,6 +277,38 @@ router.post('/rcpa/:id/entries', authenticate, async (req, res) => {
       submitted_by: req.user.id
     });
     res.status(201).json(entry);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.put('/rcpa/:id/entries/:entryId', authenticate, async (req, res) => {
+  try {
+    const entry = await MarketingRCPAEntry.findOne({
+      where: { id: req.params.entryId, rcpa_id: req.params.id }
+    });
+    if (!entry) return res.status(404).json({ error: 'RCPA entry not found' });
+    const competitors = Array.isArray(req.body.competitors) ? req.body.competitors : entry.competitors || [];
+    const competitorTotal = competitors.reduce((sum, item) => sum + asNumber(item.rx_per_week), 0);
+    await entry.update({
+      ...req.body,
+      competitors,
+      total_business_strips: req.body.total_business_strips ?? asNumber(req.body.own_rx_per_week, entry.own_rx_per_week) + competitorTotal
+    });
+    res.json(entry);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/rcpa/:id/entries/:entryId', authenticate, authorize(marketingRoles), async (req, res) => {
+  try {
+    const entry = await MarketingRCPAEntry.findOne({
+      where: { id: req.params.entryId, rcpa_id: req.params.id }
+    });
+    if (!entry) return res.status(404).json({ error: 'RCPA entry not found' });
+    await entry.destroy();
+    res.json({ message: 'RCPA entry deleted successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
