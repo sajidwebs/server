@@ -65,6 +65,10 @@ const SOPPolicy = require('./SOPPolicy');
 const AuditLog = require('./AuditLog');
 const PatchHeadquarter = require('./PatchHeadquarter');
 const RateFixation = require('./RateFixation');
+const MarketingCampaign = require('./MarketingCampaign');
+const MarketingBrandStrategy = require('./MarketingBrandStrategy');
+const MarketingRCPA = require('./MarketingRCPA');
+const MarketingRCPAEntry = require('./MarketingRCPAEntry');
 
 // ==================== RELATIONSHIPS ====================
 
@@ -865,6 +869,88 @@ RateFixation.belongsTo(InputMaster, {
   as: 'input'
 });
 
+// ==================== MARKETING MODULE RELATIONSHIPS ====================
+
+Product.hasMany(MarketingCampaign, {
+  foreignKey: 'product_id',
+  as: 'marketingCampaigns'
+});
+
+MarketingCampaign.belongsTo(Product, {
+  foreignKey: 'product_id',
+  as: 'product'
+});
+
+InputMaster.hasMany(MarketingCampaign, {
+  foreignKey: 'input_id',
+  as: 'marketingCampaigns'
+});
+
+MarketingCampaign.belongsTo(InputMaster, {
+  foreignKey: 'input_id',
+  as: 'input'
+});
+
+User.hasMany(MarketingCampaign, {
+  foreignKey: 'allocated_user_id',
+  as: 'allocatedMarketingCampaigns'
+});
+
+MarketingCampaign.belongsTo(User, {
+  foreignKey: 'allocated_user_id',
+  as: 'allocatedUser'
+});
+
+Division.hasMany(MarketingBrandStrategy, {
+  foreignKey: 'division_id',
+  as: 'marketingStrategies'
+});
+
+MarketingBrandStrategy.belongsTo(Division, {
+  foreignKey: 'division_id',
+  as: 'division'
+});
+
+Product.hasMany(MarketingRCPA, {
+  foreignKey: 'product_id',
+  as: 'marketingRCPAs'
+});
+
+MarketingRCPA.belongsTo(Product, {
+  foreignKey: 'product_id',
+  as: 'product'
+});
+
+MarketingRCPA.hasMany(MarketingRCPAEntry, {
+  foreignKey: 'rcpa_id',
+  as: 'entries'
+});
+
+MarketingRCPAEntry.belongsTo(MarketingRCPA, {
+  foreignKey: 'rcpa_id',
+  as: 'rcpa'
+});
+
+Doctor.hasMany(MarketingRCPAEntry, {
+  foreignKey: 'doctor_id',
+  as: 'rcpaEntries'
+});
+
+MarketingRCPAEntry.belongsTo(Doctor, {
+  foreignKey: 'doctor_id',
+  as: 'doctor'
+});
+
+Chemist.hasMany(MarketingRCPAEntry, {
+  foreignKey: 'chemist_id',
+  as: 'rcpaEntries'
+});
+
+MarketingRCPAEntry.belongsTo(Chemist, {
+  foreignKey: 'chemist_id',
+  as: 'chemist'
+});
+
 // ==================== EXPORT MODELS ====================
 
 module.exports = {
@@ -927,5 +1013,9 @@ module.exports = {
   SOPPolicy,
   AuditLog,
   PatchHeadquarter,
-  RateFixation
+  RateFixation,
+  MarketingCampaign,
+  MarketingBrandStrategy,
+  MarketingRCPA,
+  MarketingRCPAEntry
 };
