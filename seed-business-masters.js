@@ -77,41 +77,7 @@ async function main() {
     for (const name of ['MBBS', 'MD', 'MS', 'DM', 'MCh', 'DNB', 'Diploma']) {
       qualifications.push(await ensure('DoctorQualification', { qualification_name: name }, { short_name: name === 'Diploma' ? 'Dip' : name }));
     }
-    const divisions = {};
-    for (const [name, code, short] of [['Primary Care', 'DIV-PC', 'PC'], ['Cardiac Care', 'DIV-CC', 'CC'], ['Gastro', 'DIV-GI', 'GI'], ['Neuro', 'DIV-NR', 'NR'], ['Ortho', 'DIV-OR', 'OR']]) {
-      divisions[name] = await ensure('Division', { code }, { division_name: name, short_name: short, description: `${name} division` }, name === 'Primary Care' ? { code: 'SAMPLE-GEN' } : null);
-    }
-    const productCategories = {};
-    for (const [name, short] of [['Tablets', 'TAB'], ['Capsules', 'CAP'], ['Syrups', 'SYP'], ['Injections', 'INJ'], ['Ointments', 'OINT']]) {
-      productCategories[name] = await ensure('ProductCategory', { category_name: name }, { short_name: short, category_type: 'form' }, name === 'Tablets' ? { category_name: 'Sample Tablet' } : null);
-    }
-    const packs = {};
-    for (const [index, name] of ["10's", "15's", "20's", "30's", "50's", "100's", '30g Tube'].entries()) {
-      packs[name] = await ensure('PackSize', { pack_size: name }, { short_name: name, display_order: index + 1 }, name === "10's" ? { pack_size: 'Sample 10 tablets' } : null);
-    }
-    const strengths = {};
-    for (const value of ['10', '20', '40', '50', '100', '200', '500']) {
-      strengths[value] = await ensure('Strength', { strength_value: value, unit: 'mg' }, { short_name: `${value}mg` });
-    }
-    strengths.gel = await ensure('Strength', { strength_value: '5', unit: '%' }, { short_name: '5% Active' });
-    const brands = {};
-    for (const [name, short, division] of [['Crocin Group', 'CRN', 'Primary Care'], ['Combiflam Group', 'CBF', 'Primary Care'], ['Azithromycin Group', 'AZI', 'Primary Care'], ['Metrogyl Group', 'MTR', 'Gastro'], ['Neurobion Group', 'NRB', 'Neuro'], ['CardioMax Group', 'CMX', 'Cardiac Care'], ['OrthoCare Group', 'OCG', 'Ortho']]) {
-      brands[name] = await ensure('BrandGroup', { brand_group_name: name, division_id: divisions[division].id }, { short_name: short });
-    }
-    const products = [
-      ['OD', '00001', 'Paracetamol 500', 'PCM500', 'Primary Care', 'Crocin Group', 'Tablets', "10's", '500', 40, 42, 45, '2024-01-01'],
-      ['WB', '00045', 'CardioPlus', 'CP', 'Cardiac Care', 'CardioMax Group', 'Tablets', "15's", '10', 75, 80, 85, '2025-03-15'],
-      ['DL', '00089', 'OrthoCare Gel', 'OCG', 'Ortho', 'OrthoCare Group', 'Ointments', '30g Tube', 'gel', 105, 110, 120, '2025-06-22']
-    ];
-    for (const [legacy, id, name, short, division, brand, category, pack, strength, pts, ptr, mrp, launch] of products) {
-      await ensure('Product', { unique_id: id }, {
-        name, short_name: short, code: `PROD-${id}`, division_id: divisions[division].id,
-        brand_group_id: brands[brand].id, category_id: productCategories[category].id,
-        pack_size_id: packs[pack].id, strength_id: strengths[strength].id,
-        pts, ptr, mrp, nrv: null, launch_date: launch, status: 'active',
-        description: `${name} - ${division}`
-      }, { unique_id: `SAMPLE-${legacy}-001` });
-    }
+    // Product masters come exclusively from the official company catalogue.
     for (const [oldKey, code, name, state, district, zone, type, manager, reason, routes] of headquarters) {
       const region = zone === 'EAST' ? 'East Region' : 'North Region';
       const city = code.startsWith('KOL') ? 'Kolkata' : code === 'DEL-CEN' ? 'New Delhi' : code.startsWith('DEL') ? 'Delhi' : name;
@@ -162,6 +128,7 @@ async function main() {
       }
     }
   });
+  await require('./sync-company-catalog')();
   console.log('Document-aligned master data committed:', JSON.stringify(changes));
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(() => db.close());

@@ -1,0 +1,19 @@
+{
+  "company": "Charak & Sushrut Pharmaceuticals",
+  "division": "Pamsforce",
+  "source": "https://charakandsushrut.com/",
+  "verifiedOn": "2026-11-15",
+  "categories": [
+    { "name": "Tablets", "shortName": "TAB" },
+    { "name": "Gel", "shortName": "GEL" }
+  ],
+  "products": [
+    { "name": "BGCAL GOLD", "code": "BGCAL-GOLD", "category": "Tablets", "url": "https://charakandsushrut.com/bgcalgold.html" },
+    { "name": "FIXOMOVE", "code": "FIXOMOVE", "category": "Gel", "url": "https://charakandsushrut.com/fixomove.html" },
+    { "name": "BGNOR NP", "code": "BGNOR-NP", "category": "Tablets", "url": "https://charakandsushrut.com/bgnornp.html" },
+    { "name": "TAP-325", "code": "TAP-325", "category": "Tablets", "url": "https://charakandsushrut.com/tap325.html" },
+    { "name": "TRACH-61", "code": "TRACH-61", "category": "Tablets", "url": "https://charakandsushrut.com/trach61.html" },
+    { "name": "KAYAMAG RCC", "code": "KAYAMAG-RCC", "category": "Tablets", "url": "https://charakandsushrut.com/kayamagrcc.html" },
+    { "name": "OSTEOSWIFT", "code": "OSTEOSWIFT", "category": "Tablets", "url": "https://charakandsushrut.com/osteoswift.html" }
+  ]
+}

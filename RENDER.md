@@ -39,10 +39,24 @@ Removing a file from the current commit does not remove it from Git history.
 
 ## Regional master data and verification
 
+The authoritative product catalogue is now [company-catalog.json](./company-catalog.json),
+verified against `https://charakandsushrut.com/` on 15 November 2026.
+Run `npm run catalog:sync -- --apply` to synchronize it. The seven website brands
+belong to the Pamsforce sales division of Charak & Sushrut Pharmaceuticals.
+Categories use the dosage forms described on the site (Tablets and Gel); the site
+does not expose a separate category taxonomy. Prices, pack quantities, tax rates,
+and regulatory schedules are not inferred from names or inherited from unrelated
+products. Published product names use the menu's uppercase display style.
+
+The sync backs up the previous catalogue, removes unreferenced unrelated products
+and categories, and inactivates those with business references. Existing company
+product IDs, references, and prices are preserved. Obsolete division and brand
+choices are inactivated. Repeat runs do not duplicate the catalogue.
+
 `npm run seed:regional -- --apply` initializes the documented Odisha, West Bengal,
 and Delhi business masters. It preserves unrelated records and renames only the
 earlier seed-owned placeholders. HQ and territory codes follow the seeding guide;
-product classification and reference prices follow the product specification.
+product masters follow the official company website instead of the specification's reference examples.
 Seeded contact addresses use `pamsforce.com`. Existing account activation and
 passwords are preserved. No sales or completed field activity is invented.
 

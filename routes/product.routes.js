@@ -551,9 +551,7 @@ router.get('/', async (req, res) => {
     const where = {};
     
     // Filter by status if provided
-    if (status) {
-      where.status = status;
-    }
+    if (status !== 'all') where.status = status || 'active';
     // If no status filter, default to active for mobile app queries
     if (division_id) where.division_id = division_id;
     if (category_id) where.category_id = category_id;
