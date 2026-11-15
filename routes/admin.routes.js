@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Op } = require('sequelize');
+const { Op, fn, col, where } = require('sequelize');
 const { User, Activity, Sale, Doctor, Chemist, Territory, Product, Headquarter, Projection, Business, DayCall, Notification } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const { hashPassword } = require('../utils/password');
@@ -262,6 +262,16 @@ router.get('/reports', async (req, res) => {
     const { type, startDate, endDate } = req.query;
     let reportData = {};
     switch (type) {
+      case 'activity': reportData = await getDailyVisitsReport(startDate, endDate); break;
+      case 'projection': {
+        const projections = await Projection.findAll({
+          where: where(fn('make_date', col('year'), col('month'), 1), { [Op.between]: [`${startDate.slice(0,7)}-01`, endDate] })
+        });
+        reportData = { type, period: { startDate, endDate }, projections,
+          summary: { totalActivities: projections.length, totalProjected: projections.reduce((sum, p) => sum + Number(p.projectedAmount || 0), 0) } };
+        break;
+      }
+      case 'performance': reportData = await getMonthlyStatsReport(startDate, endDate); break;
       case 'daily-visits': reportData = await getDailyVisitsReport(startDate, endDate); break;
       case 'sales': reportData = await getSalesReport(startDate, endDate); break;
       case 'monthly-stats': reportData = await getMonthlyStatsReport(); break;
@@ -299,11 +309,11 @@ async function getSalesReport(startDate, endDate) {
   return { type: 'sales', period: { startDate, endDate }, summary: { totalSales, totalQuantity, totalTransactions: sales.length, averageTransactionValue: sales.length > 0 ? (totalSales / sales.length).toFixed(2) : 0 }, sales };
 }
 
-async function getMonthlyStatsReport() {
+async function getMonthlyStatsReport(startDate, endDate) {
   const now = new Date();
   const monthStr = String(now.getMonth() + 1).padStart(2, '0');
-  const dateFrom = `${now.getFullYear()}-${monthStr}-01`;
-  const dateTo = now.toISOString().split('T')[0];
+  const dateFrom = startDate || `${now.getFullYear()}-${monthStr}-01`;
+  const dateTo = endDate || now.toISOString().split('T')[0];
 
   const monthlyActivities = await Activity.findAll({
     where: { date: { [Op.gte]: dateFrom, [Op.lte]: dateTo } },

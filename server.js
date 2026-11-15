@@ -13,7 +13,7 @@ app.set('trust proxy', 1);
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: () => process.env.NODE_ENV === 'development' ? 1000 : 100,
   message: 'Too many requests from this IP, please try again later.'
 });
 
@@ -42,88 +42,8 @@ app.use(helmet());
 const db = require('./config/database');
 require('./models'); // Import all models to register them with Sequelize
 
-// Auto-migration: Add new columns if they don't exist
-async function runMigration() {
-  console.log('🔧 Running auto-migration...');
-  const migrations = [
-    // New user columns
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "fullName" VARCHAR(255)`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "username" VARCHAR(255) UNIQUE`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "mobileNumber" VARCHAR(15)`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "role_id" INTEGER`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "employeeId" VARCHAR(255)`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "assigned_manager_id" INTEGER`,
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "loginHistory" JSON`,
-    // New tables
-    `CREATE TABLE IF NOT EXISTS roles (id SERIAL PRIMARY KEY, role_name VARCHAR(255) NOT NULL UNIQUE, short_name VARCHAR(20), description TEXT, hierarchy_level INTEGER DEFAULT 0, status VARCHAR(20) DEFAULT 'active', created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS permissions (id SERIAL PRIMARY KEY, module VARCHAR(255) NOT NULL, action VARCHAR(255) NOT NULL, description TEXT, status VARCHAR(20) DEFAULT 'active', created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS role_permissions (id SERIAL PRIMARY KEY, role_id INTEGER NOT NULL, permission_id INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS expense_types (id SERIAL PRIMARY KEY, expense_type VARCHAR(255) NOT NULL, short_name VARCHAR(20) NOT NULL UNIQUE, description TEXT, status VARCHAR(20) DEFAULT 'active', created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS travel_modes (id SERIAL PRIMARY KEY, travel_type VARCHAR(255) NOT NULL, short_name VARCHAR(20) NOT NULL UNIQUE, description TEXT, requires_distance BOOLEAN DEFAULT true, status VARCHAR(20) DEFAULT 'active', created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS standard_fare_charts (id SERIAL PRIMARY KEY, employee_name VARCHAR(255) NOT NULL, employee_id INTEGER, designation VARCHAR(255) NOT NULL, hq_type VARCHAR(20) DEFAULT 'Non-Metro', employee_status VARCHAR(20) DEFAULT 'Confirmed', da DECIMAL(10,2) DEFAULT 0, ex_allowance DECIMAL(10,2) DEFAULT 0, outstation_allowance DECIMAL(10,2) DEFAULT 0, hill_station_allowance DECIMAL(10,2) DEFAULT 0, meeting_allowance DECIMAL(10,2) DEFAULT 0, accommodation DECIMAL(10,2) DEFAULT 0, fare_per_km DECIMAL(10,2) DEFAULT 0, fare_0_to_70km DECIMAL(10,2) DEFAULT 0, fare_70_to_100km DECIMAL(10,2) DEFAULT 0, fare_above_100km DECIMAL(10,2) DEFAULT 0, mobile_allowance DECIMAL(10,2) DEFAULT 0, stationary_allowance DECIMAL(10,2) DEFAULT 0, effective_from DATE, effective_to DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS expenses (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, month VARCHAR(2) NOT NULL, year VARCHAR(4) NOT NULL, date DATE NOT NULL, working_status VARCHAR(20) DEFAULT 'Working', hq_id INTEGER, territory_id INTEGER, doctor_calls INTEGER DEFAULT 0, chemist_calls INTEGER DEFAULT 0, business_amount DECIMAL(12,2) DEFAULT 0, allowance DECIMAL(10,2) DEFAULT 0, from_place VARCHAR(255), to_place VARCHAR(255), travel_mode_id INTEGER, travel_entry_amount DECIMAL(10,2) DEFAULT 0, distance_km DECIMAL(10,2) DEFAULT 0, ta DECIMAL(10,2) DEFAULT 0, miscellaneous DECIMAL(10,2) DEFAULT 0, fare_chart_id INTEGER, approval_status VARCHAR(20) DEFAULT 'draft', approved_by INTEGER, approved_at TIMESTAMP, rejection_reason TEXT, remarks TEXT, created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS expense_additions (id SERIAL PRIMARY KEY, expense_id INTEGER NOT NULL, type VARCHAR(20) NOT NULL, amount DECIMAL(10,2) DEFAULT 0, reason TEXT, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    // System Setup Tables (Rule Engine)
-    `CREATE TABLE IF NOT EXISTS call_average_setup (id SERIAL PRIMARY KEY, designation VARCHAR(50) NOT NULL, min_field_working_days INTEGER DEFAULT 20, daily_calls INTEGER DEFAULT 11, monthly_calls INTEGER, quarterly_calls INTEGER, yearly_calls INTEGER, warning_threshold DECIMAL(5,2) DEFAULT 90.00, alert_threshold DECIMAL(5,2) DEFAULT 70.00, effective_from DATE, effective_to DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS coverage_setup (id SERIAL PRIMARY KEY, designation VARCHAR(50) NOT NULL, doctor_list_type VARCHAR(20) DEFAULT 'Core', monthly_coverage DECIMAL(5,2) DEFAULT 90.00, quarterly_coverage DECIMAL(5,2) DEFAULT 100.00, yearly_coverage DECIMAL(5,2) DEFAULT 100.00, effective_from DATE, effective_to DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS work_type_setup (id SERIAL PRIMARY KEY, designation VARCHAR(50) NOT NULL, field_work_days INTEGER DEFAULT 24, office_work_days INTEGER DEFAULT 4, total_working_days INTEGER, mandatory_field_days BOOLEAN DEFAULT true, effective_from DATE, effective_to DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS work_type_master (id SERIAL PRIMARY KEY, type_name VARCHAR(50) NOT NULL, short_name VARCHAR(10), description TEXT, requires_gps BOOLEAN DEFAULT false, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS leave_policy_master (id SERIAL PRIMARY KEY, leave_type VARCHAR(20) NOT NULL, leave_type_name VARCHAR(50), probation_allowed BOOLEAN DEFAULT false, regular_allowed BOOLEAN DEFAULT true, max_days_per_month INTEGER DEFAULT 2, max_days_per_year INTEGER DEFAULT 12, carry_forward BOOLEAN DEFAULT true, max_carry_forward_days INTEGER, approval_required BOOLEAN DEFAULT true, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS user_leave_balance (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, leave_type VARCHAR(20) NOT NULL, year INTEGER NOT NULL, total_allocated INTEGER DEFAULT 0, used INTEGER DEFAULT 0, balance INTEGER DEFAULT 0, carry_forwarded INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    // New Master Data Tables
-    `CREATE TABLE IF NOT EXISTS patches (id SERIAL PRIMARY KEY, patch_name VARCHAR(255) NOT NULL, state VARCHAR(255) NOT NULL, hq_id INTEGER, pincode VARCHAR(10), start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS patch_headquarters (id SERIAL PRIMARY KEY, patch_id INTEGER NOT NULL, hq_id INTEGER NOT NULL, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(patch_id, hq_id))`,
-    `CREATE TABLE IF NOT EXISTS stockists (id SERIAL PRIMARY KEY, stockist_name VARCHAR(255) NOT NULL, mobile VARCHAR(15), contact_person VARCHAR(255), hq_id INTEGER, state VARCHAR(255), address TEXT, patch_id INTEGER, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS hospitals (id SERIAL PRIMARY KEY, hospital_name VARCHAR(255) NOT NULL, mobile VARCHAR(15), contact_person VARCHAR(255), hq_id INTEGER, state VARCHAR(255), address TEXT, patch_id INTEGER, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS svl (id SERIAL PRIMARY KEY, doctor_id INTEGER NOT NULL, hq_id INTEGER NOT NULL, visit_frequency VARCHAR(50) DEFAULT 'Weekly', priority INTEGER DEFAULT 1, year INTEGER, start_date DATE DEFAULT CURRENT_DATE, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(doctor_id, hq_id, year))`,
-    `CREATE TABLE IF NOT EXISTS input_allocations (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, input_id INTEGER NOT NULL, product_input VARCHAR(255), qty INTEGER NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, allocation_type VARCHAR(20) DEFAULT 'monthly', is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS notice_uploads (id SERIAL PRIMARY KEY, notice_id VARCHAR(255) NOT NULL UNIQUE, title VARCHAR(255) NOT NULL, notice_document VARCHAR(500), effective_date DATE NOT NULL, audience VARCHAR(50) DEFAULT 'all', is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS sop_policies (id SERIAL PRIMARY KEY, designation VARCHAR(255) NOT NULL, sop_document VARCHAR(500), probation_policy TEXT, regular_policy TEXT, whistle_blower_policy TEXT, start_date DATE NOT NULL, end_date DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS rate_fixations (id SERIAL PRIMARY KEY, state VARCHAR(255) NOT NULL, product_id INTEGER NOT NULL, sample_id INTEGER, input_id INTEGER, pts DECIMAL(10,2), ptr DECIMAL(10,2), mrp DECIMAL(10,2), nrv DECIMAL(10,2), effective_from DATE NOT NULL, effective_to DATE, is_active BOOLEAN DEFAULT true, created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS audit_logs (id SERIAL PRIMARY KEY, table_name VARCHAR(255) NOT NULL, record_id INTEGER NOT NULL, action VARCHAR(20) NOT NULL, changed_by INTEGER NOT NULL, change_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, old_value JSON, new_value JSON, field_name VARCHAR(255))`,
-    // Marketing and RCPA module from marketing workbook
-    `CREATE TABLE IF NOT EXISTS marketing_campaigns (id SERIAL PRIMARY KEY, campaign_code VARCHAR(255) NOT NULL UNIQUE, campaign_name VARCHAR(255) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, campaign_for VARCHAR(50) DEFAULT 'doctor', speciality_id INTEGER, product_id INTEGER, brand_name VARCHAR(255), objective TEXT, target_count INTEGER DEFAULT 0, allocated_division_id INTEGER, allocated_role VARCHAR(50), allocated_user_id INTEGER, input_id INTEGER, input_name VARCHAR(255), qty_per_visit INTEGER DEFAULT 0, distribution_type VARCHAR(50) DEFAULT 'once', recurrence_frequency VARCHAR(50), recurrence_count INTEGER DEFAULT 1, input_unit_value DECIMAL(12,2) DEFAULT 0, total_investment DECIMAL(14,2) DEFAULT 0, expected_roi DECIMAL(14,2) DEFAULT 0, prescription_per_month INTEGER DEFAULT 0, strip_sale_per_rx DECIMAL(10,2) DEFAULT 0, total_sale_per_month DECIMAL(14,2) DEFAULT 0, new_prescribers_added INTEGER DEFAULT 0, sales_growth DECIMAL(7,4) DEFAULT 0, hq_below_90 INTEGER DEFAULT 0, hq_below_70 INTEGER DEFAULT 0, hq_at_100 INTEGER DEFAULT 0, status VARCHAR(30) DEFAULT 'draft', created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS marketing_brand_strategies (id SERIAL PRIMARY KEY, financial_year VARCHAR(20) NOT NULL, brand_name VARCHAR(255) NOT NULL, activity_name VARCHAR(255) NOT NULL, division_id INTEGER, start_date DATE, end_date DATE, objective_in_strips INTEGER DEFAULT 0, doctors_targeted INTEGER DEFAULT 0, visits JSONB DEFAULT '[]'::jsonb, status VARCHAR(30) DEFAULT 'draft', created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS marketing_rcpas (id SERIAL PRIMARY KEY, rcpa_code VARCHAR(255) NOT NULL UNIQUE, rcpa_name VARCHAR(255) NOT NULL, rcpa_type VARCHAR(50) DEFAULT 'doctor_wise', speciality_id INTEGER, product_id INTEGER, allocation_scope VARCHAR(30) DEFAULT 'all', allocated_division_id INTEGER, allocated_role VARCHAR(50), allocated_user_id INTEGER, status VARCHAR(30) DEFAULT 'draft', created_by INTEGER, updated_by INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS marketing_rcpa_entries (id SERIAL PRIMARY KEY, rcpa_id INTEGER NOT NULL, doctor_id INTEGER, doctor_name VARCHAR(255) NOT NULL, doctor_address TEXT, speciality VARCHAR(255), chemist_id INTEGER, chemist_name VARCHAR(255), chemist_address TEXT, contact_number VARCHAR(30), brand_name VARCHAR(255) NOT NULL, own_rx_per_week INTEGER DEFAULT 0, competitors JSONB DEFAULT '[]'::jsonb, total_business_strips INTEGER DEFAULT 0, submitted_by INTEGER, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-    `INSERT INTO marketing_campaigns (campaign_code, campaign_name, start_date, end_date, campaign_for, brand_name, objective, target_count, input_name, qty_per_visit, distribution_type, recurrence_frequency, recurrence_count, input_unit_value, total_investment, expected_roi, prescription_per_month, strip_sale_per_rx, total_sale_per_month, new_prescribers_added, sales_growth, hq_below_90, hq_below_70, hq_at_100, status) VALUES ('MKT-CAMP-001', 'Workbook Doctor Campaign', CURRENT_DATE, CURRENT_DATE + INTERVAL '90 days', 'doctor', 'Bgcal gold', 'Create campaign for doctor speciality and product selection with input allocation and ROI forecasting.', 10, 'Selected input', 1, 'recurring', 'quarterly', 2, 150.00, 30000.00, 300000.00, 300, 1.00, 300.00, 15, 0.2000, 10, 30, 40, 'running') ON CONFLICT (campaign_code) DO NOTHING`,
-    `INSERT INTO marketing_brand_strategies (financial_year, brand_name, activity_name, start_date, end_date, objective_in_strips, doctors_targeted, visits, status) VALUES ('2026-2027', 'Bgcal gold', 'xyz', CURRENT_DATE, CURRENT_DATE + INTERVAL '90 days', 300, 10, '[{"visit":1,"input":"Select Input"},{"visit":2,"input":"Select Input"},{"visit":3,"input":"Select Input"}]'::jsonb, 'active') ON CONFLICT DO NOTHING`,
-    `INSERT INTO marketing_rcpas (rcpa_code, rcpa_name, rcpa_type, allocation_scope, allocated_role, status) VALUES ('RCPA-001', 'Workbook RCPA Doctor Audit', 'doctor_wise', 'specific', 'TBM', 'allocated') ON CONFLICT (rcpa_code) DO NOTHING`,
-    // New columns for existing tables
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS registration_number VARCHAR(255)`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS mobile_number VARCHAR(15)`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS state VARCHAR(255)`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS patch_id INTEGER`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS full_address TEXT`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS visit_time VARCHAR(50)`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS visit_day VARCHAR(50)`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS patients_per_week INTEGER`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS dob DATE`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS anniversary DATE`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS start_date DATE DEFAULT CURRENT_DATE`,
-    `ALTER TABLE doctors ADD COLUMN IF NOT EXISTS end_date DATE`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS contact_person VARCHAR(255)`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255)`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS dl_number VARCHAR(255)`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS state VARCHAR(255)`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS patch_id INTEGER`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS visit_time VARCHAR(50) DEFAULT 'Any time'`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS start_date DATE DEFAULT CURRENT_DATE`,
-    `ALTER TABLE chemists ADD COLUMN IF NOT EXISTS end_date DATE`
-  ];
-  for (const sql of migrations) {
-    try {
-      await db.query(sql);
-    } catch (e) {
-      // Ignore "already exists" errors
-      if (!e.message.includes('already exists') && !e.message.includes('duplicate')) {
-        console.log('Migration warning:', e.message.substring(0, 100));
-      }
-    }
-  }
-  console.log('✅ Auto-migration completed.');
-}
-
+// Validate the schema without changing data during normal startup.
+const runMigration = require('./config/initializeDatabase');
 // Test database connection and then sync, then start server
 db.authenticate()
   .then(() => {
@@ -154,8 +74,10 @@ db.authenticate()
       });
     });
   })
-  .catch(err => {
-    console.error('Unable to connect to the database:', err);
+  .catch(async err => {
+    console.error('Database startup failed. Check database settings and schema compatibility:', err.message);
+    await db.close();
+    process.exitCode = 1;
   });
 
 // Routes
@@ -167,6 +89,8 @@ app.get('/', (req, res) => {
 });
 
 // Test endpoint for JSON parsing
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
 app.post('/test-json', (req, res) => {
   console.log('Test endpoint received:', req.body);
   res.json({ message: 'JSON received successfully', data: req.body });

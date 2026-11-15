@@ -1,5 +1,12 @@
 const express = require('express');
 const router = express.Router();
+// Express 4 does not forward rejected async handlers to error middleware.
+for (const method of ['get', 'post', 'put', 'delete']) {
+  const register = router[method].bind(router);
+  router[method] = (path, ...handlers) => register(path, ...handlers.map(handler =>
+    (req, res, next) => Promise.resolve().then(() => handler(req, res, next)).catch(next)
+  ));
+}
 const { QueryTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const { Sale, Projection, User, Product, Stockist, Headquarter, Territory } = require('../models');
@@ -12,7 +19,17 @@ const normalizeRole = (role = '') => role.toLowerCase().replace(/[^a-z]/g, '');
 const userRank = (user) => roleRank[normalizeRole(user?.role)] || (normalizeRole(user?.role).includes('admin') ? 100 : 10);
 const isAdminLike = (user) => userRank(user) >= 90 || normalizeRole(user?.role).includes('admin');
 
-const ensureSalesTables = async () => {
+let salesTablesReady;
+const ensureSalesTables = () => {
+  if (!salesTablesReady) {
+    salesTablesReady = createSalesTables().catch(error => {
+      salesTablesReady = undefined;
+      throw error;
+    });
+  }
+  return salesTablesReady;
+};
+const createSalesTables = async () => {
   const queries = [
     `CREATE TABLE IF NOT EXISTS sales_targets (
       id SERIAL PRIMARY KEY, user_id INTEGER, hq_id INTEGER, territory_id INTEGER, product_id INTEGER NOT NULL,

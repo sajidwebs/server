@@ -5,8 +5,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "admin:create": "node create-admin.js",
     "dev": "nodemon server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:recover": "node recover-local.js",
+    "db:init-local": "node init-local-masters.js",
+    "test:local": "node smoke-local.js",
+    "test": "node test-initialize.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

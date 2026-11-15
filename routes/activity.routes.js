@@ -29,7 +29,7 @@ router.get('/', authenticate, async (req, res) => {
       where: whereClause,
       include: [
         { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName', 'specialty'] },
-        { model: DoctorClass, as: 'doctorClass', attributes: ['id', 'category_name', 'short_name'] },
+        { model: DoctorClass, as: 'doctorClass', attributes: ['id', ['class_name', 'category_name'], 'short_name'] },
         {
           model: DoctorCallProduct,
           as: 'callProducts',
@@ -61,7 +61,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const activity = await Activity.findByPk(req.params.id, {
       include: [
         { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName', 'specialty'] },
-        { model: DoctorClass, as: 'doctorClass', attributes: ['id', 'category_name', 'short_name'] },
+        { model: DoctorClass, as: 'doctorClass', attributes: ['id', ['class_name', 'category_name'], 'short_name'] },
         {
           model: DoctorCallProduct,
           as: 'callProducts',
@@ -141,7 +141,7 @@ router.post('/', authenticate, async (req, res) => {
     const createdActivity = await Activity.findByPk(activity.id, {
       include: [
         { model: Doctor, as: 'doctor', attributes: ['id', 'firstName', 'lastName', 'specialty'] },
-        { model: DoctorClass, as: 'doctorClass', attributes: ['id', 'category_name', 'short_name'] },
+        { model: DoctorClass, as: 'doctorClass', attributes: ['id', ['class_name', 'category_name'], 'short_name'] },
         {
           model: DoctorCallProduct,
           as: 'callProducts',

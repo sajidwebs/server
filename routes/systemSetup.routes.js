@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { CallAverageSetup, CoverageSetup, WorkTypeSetup, WorkTypeMaster, LeavePolicyMaster, UserLeaveBalance, User } = require('../models');
+const { CallAverageSetup, CoverageSetup, WorkTypeSetup, WorkTypeMaster, LeavePolicyMaster, UserLeaveBalance, User, Headquarter, Territory } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -275,7 +275,7 @@ router.get('/work-type', async (req, res) => {
 router.get('/work-type-master', async (req, res) => {
   try {
     const types = await WorkTypeMaster.findAll({
-      where: { is_active: true },
+      where: { isActive: true },
       order: [['type_name', 'ASC']]
     });
     res.json(types);
@@ -583,7 +583,7 @@ router.get('/compliance', async (req, res) => {
   try {
     const { designation, hq_id } = req.query;
     
-    const where = { is_active: true };
+    const where = { isActive: true };
     if (designation) {
       where.employeeType = designation;
     }

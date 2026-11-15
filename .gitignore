@@ -74,6 +74,9 @@ web_modules/
 
 # dotenv environment variable files
 .env
+.envserver
+.env.*
+!.env.example
 .env.development.local
 .env.test.local
 .env.production.local
@@ -135,3 +138,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 ~$DITION.docx
+backups/
