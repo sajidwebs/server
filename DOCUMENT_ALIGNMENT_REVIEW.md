@@ -29,6 +29,16 @@ The existing project/three-layer guide and portal workflow were also compared;
 original department documents and the user's current company catalogue direction
 take precedence over generated examples.
 
+## Headquarters, divisions and navigation follow-up
+
+All 13 unique department documents listed below were reviewed, including all workbook sheets and the scanned PDF. The HQ specification defines Zone ? State/UT ? Region ? HQ ? Patch. The portal now exposes Headquarters, Territories / Routes, a geographic hierarchy view, and Patch / HQ Mapping under Territory & HQ. Existing 8 headquarters, 16 territories and 16 patches are retained; the documents do not supply a further approved territory directory.
+
+The unsupported Pamsforce division has been removed. Task force and General are the only division names explicitly shown in the Product Master entry table (an example table, not an approved company roster). OSTEOSWIFT and Osteoswift Gold use the corresponding documented mappings; other products remain unassigned unless previously assigned manually. The workbook and PDF contain no division list. These names should be confirmed against an approved company division roster when available.
+
+Ranjit Malik was added at the user's request with ranjit.malik@pamsforce.com. The account is inactive with designation unassigned, pending administrator setup; no example role or employee identifier was copied.
+
+Sidebar coverage now includes customer masters, input/sample/allocation masters, notices, SOP, rate fixation, approvals and four System Setup policy links. Canonical master screens expose management actions rather than redirecting every visit to addition-only screens. Navigation verification checks 37 master links. This completes the missing navigation and master-data work described here; advanced workflow limitations recorded below remain separate.
+
 ## Data changes applied
 
 1. Catalogue now contains the original seven website products plus **Osteoswift

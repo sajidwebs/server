@@ -83,3 +83,8 @@ untouched automatic example policies. It does not import example allowances, sta
 sales, targets, sample pack sizes or policy thresholds.
 Run `npm run test:documents` only with the isolated local test database configured.
 See [document reconciliation](./DOCUMENT_ALIGNMENT_REVIEW.md) for sources and remaining gaps.
+
+
+### Department organization masters
+
+Run `npm run organization:sync -- --apply` after reviewing the department source mapping. This creates the requested inactive Ranjit Malik account, fills missing geography from assigned headquarters and restores missing primary patch/HQ mappings. It does not invent territory records. `npm run catalog:sync -- --apply` uses Task force and General from the Product Master example entry table, superseding the earlier Pamsforce division. Existing manual product division assignments are preserved. See [document review](./DOCUMENT_ALIGNMENT_REVIEW.md) for the evidence and limitations.

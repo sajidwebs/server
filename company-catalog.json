@@ -1,6 +1,10 @@
 {
   "company": "Charak & Sushrut Pharmaceuticals",
-  "division": "Pamsforce",
+  "divisions": [
+    { "name": "Task force", "shortName": "TF", "code": "TASK-FORCE" },
+    { "name": "General", "shortName": "GEN", "code": "GENERAL" }
+  ],
+  "divisionSource": "docs/Software Data(Product Master) Pg2 (2).docx, product entry table",
   "source": "https://charakandsushrut.com/",
   "verifiedOn": "2026-11-15",
   "departmentSource": "docs/test.xlsx, Sheet1!B6:B14 (Monthly Sales Plan)",
@@ -15,8 +19,8 @@
     { "name": "TAP-325", "code": "TAP-325", "category": "Tablets", "url": "https://charakandsushrut.com/tap325.html" },
     { "name": "TRACH-61", "code": "TRACH-61", "category": "Tablets", "url": "https://charakandsushrut.com/trach61.html" },
     { "name": "KAYAMAG RCC", "code": "KAYAMAG-RCC", "category": "Tablets", "url": "https://charakandsushrut.com/kayamagrcc.html" },
-    { "name": "OSTEOSWIFT", "code": "OSTEOSWIFT", "category": "Tablets", "url": "https://charakandsushrut.com/osteoswift.html" },
-    { "name": "Osteoswift Gold", "code": "OSTEOSWIFT-GOLD", "category": "Tablets", "brandGroup": "OSTEOSWIFT", "source": "docs/test.xlsx, Sheet1!B7; docs/Software Data(Product Master) Pg2 (2).docx, product entry example" },
+    { "name": "OSTEOSWIFT", "code": "OSTEOSWIFT", "category": "Tablets", "division": "Task force", "url": "https://charakandsushrut.com/osteoswift.html" },
+    { "name": "Osteoswift Gold", "code": "OSTEOSWIFT-GOLD", "category": "Tablets", "division": "General", "brandGroup": "OSTEOSWIFT", "source": "docs/test.xlsx, Sheet1!B7; docs/Software Data(Product Master) Pg2 (2).docx, product entry example" },
     { "name": "BGNOR M", "code": "BGNOR-M", "category": null, "source": "docs/test.xlsx, Sheet1!B12" }
   ]
 }

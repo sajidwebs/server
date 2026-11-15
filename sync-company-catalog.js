@@ -10,7 +10,7 @@ const normalize = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/
 async function syncCompanyCatalog() {
   const summary = { products: [], removedProducts: [], retiredProducts: [], removedCategories: [], retiredCategories: [] };
   const snapshot = {};
-  for (const name of ['Product', 'ProductCategory', 'Division', 'BrandGroup', 'PackSize', 'Strength', 'ProductPriceHistory']) {
+  for (const name of ['Product', 'ProductCategory', 'Division', 'BrandGroup', 'PackSize', 'Strength', 'ProductPriceHistory','MarketingCampaign','MarketingBrandStrategy','MarketingRCPA']) {
     snapshot[name] = await M[name].findAll({ raw: true });
   }
   const backupDir = path.join(__dirname, 'backups');
@@ -21,9 +21,15 @@ async function syncCompanyCatalog() {
     const admin = await M.User.findOne({ where: { role: 'admin', isActive: true }, transaction });
     if (!admin) throw new Error('An active administrator is required.');
     const owner = { created_by: admin.id };
-    const [division] = await M.Division.findOrCreate({ where: { code: 'PAMSFORCE' },
-      defaults: { division_name: catalog.division, short_name: 'PAMS', description: `Sales division of ${catalog.company}`, ...owner }, transaction });
-    await division.update({ division_name: catalog.division, status: 'active' }, { transaction });
+    const divisions = new Map();
+    for (const item of catalog.divisions) {
+      const matches = snapshot.Division.filter(row => normalize(row.division_name) === normalize(item.name));
+      if(matches.length > 1) throw new Error(`Multiple division records match ${item.name}`);
+      const division = matches.length ? await M.Division.findByPk(matches[0].id,{transaction}) : await M.Division.create({division_name:item.name,short_name:item.shortName,code:item.code,...owner},{transaction});
+      await division.update({division_name:item.name,status:'active'},{transaction});
+      divisions.set(item.name,division.id);
+    }
+    const obsoleteDivisionIds = snapshot.Division.filter(row => normalize(row.division_name) === 'PAMSFORCE' || row.code === 'PAMSFORCE').map(row => row.id);
     const categoryIds = [];
     for (const item of catalog.categories) {
       const [category] = await M.ProductCategory.findOrCreate({ where: { category_name: item.name },
@@ -37,11 +43,16 @@ async function syncCompanyCatalog() {
       const matches = snapshot.Product.filter(row => normalize(row.name) === normalize(item.name));
       if (matches.length > 1) throw new Error(`Multiple existing records match ${item.name}; resolve duplicates before importing.`);
       const category = await M.ProductCategory.findOne({ where: { category_name: item.category }, transaction });
-      const [brand] = await M.BrandGroup.findOrCreate({ where: { brand_group_name: item.brandGroup || item.name, division_id: division.id },
+      const brandName = item.brandGroup || item.name;
+      const priorBrands = snapshot.BrandGroup.filter(row => normalize(row.brand_group_name) === normalize(brandName));
+      const existingBrand = matches[0]?.brand_group_id ? priorBrands.find(row=>row.id === matches[0].brand_group_id) : priorBrands[0];
+      const [brand] = existingBrand ? [await M.BrandGroup.findByPk(existingBrand.id,{transaction})] : await M.BrandGroup.findOrCreate({ where: { brand_group_name:brandName, division_id:null },
         defaults: { short_name: item.code, ...owner }, transaction });
-      await brand.update({ status: 'active' }, { transaction });
+      await brand.update({ status: 'active', ...(obsoleteDivisionIds.includes(brand.division_id) ? {division_id:null} : {}) }, { transaction });
       brandIds.push(brand.id);
-      const values = { name: item.name, short_name: item.name, division_id: division.id,
+      const previousDivision = matches[0]?.division_id;
+      const divisionId = previousDivision && !obsoleteDivisionIds.includes(previousDivision) ? previousDivision : item.division ? divisions.get(item.division) : null;
+      const values = { name: item.name, short_name: item.name, division_id: divisionId,
         brand_group_id: brand.id, category_id: category?.id || null, category: item.category,
         brand: item.name, manufacturer: catalog.company, status: 'active', isActive: true,
         description: item.url ? `${catalog.company} product. Official product information: ${item.url}` : `${catalog.company} product. Source: ${item.source}. Commercial details await confirmation.`, updated_by: admin.id };
@@ -96,7 +107,13 @@ async function syncCompanyCatalog() {
     }
     // Hide unrelated old catalogue choices while retaining their historical references.
     await M.BrandGroup.update({ status: 'inactive' }, { where: { id: { [Op.notIn]: brandIds } }, transaction });
-    await M.Division.update({ status: 'inactive' }, { where: { id: { [Op.ne]: division.id } }, transaction });
+    // Remove the incorrect Pamsforce master; preserve unrelated divisions and all historical records.
+    for(const id of obsoleteDivisionIds) {
+      for(const model of Object.values(M)) for(const field of ['division_id','allocated_division_id']) {
+        if(model.rawAttributes[field]) await model.update({[field]:null},{where:{[field]:id},transaction});
+      }
+      await M.Division.destroy({where:{id},transaction});
+    }
     const active = await M.Product.findAll({ where: { status: 'active' }, transaction });
     assert.deepEqual(active.map(row => row.name).sort(), catalog.products.map(row => row.name).sort());
     assert.equal(await M.ProductCategory.count({ where: { status: 'active' }, transaction }), categoryIds.length);
