@@ -72,12 +72,17 @@ const fixtures = [
 
 async function main() {
   if (!['localhost', '127.0.0.1', '::1'].includes(db.config.host) ||
-      !['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname)) {
+      !['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname) ||
+      !/(^|_)(test|audit|crud)(_|$)/i.test(db.config.database)) {
     throw new Error('Write audits require an isolated LOCAL database and LOCAL API. Production or hosted databases are not permitted.');
   }
+  const health = await (await http(`${new URL(base).origin}/health`)).json();
+  assert.equal(health.testDatabase, db.config.database, 'The API must run in test mode against the same isolated database.');
+  assert.equal(health.testHost, db.config.host);
   if (!process.env.SMOKE_EMAIL || !process.env.SMOKE_PASSWORD) throw new Error('Set SMOKE_EMAIL and SMOKE_PASSWORD.');
   const login = await request('auth/login', 'POST', { email: process.env.SMOKE_EMAIL, password: process.env.SMOKE_PASSWORD });
   token = login.token;
+  try {
   for (const item of fixtures) {
     let id;
     try {
@@ -126,6 +131,7 @@ async function main() {
   await request('auth/profile', 'GET', undefined, [401]);
   token = adminToken;
   console.log('PASS validation, duplicate, foreign key, missing record, report dates, self-delete, password update, permissions and disabled-token checks');
+  } finally {
   // Reverse order respects dependencies. Only records created by this run are touched.
   for (const item of [...cleanup].reverse()) {
     try {
@@ -145,7 +151,10 @@ async function main() {
     await M.AuditLog.destroy({ where: { table_name: M[item.model].tableName, record_id: item.id } });
     await M[item.model].destroy({ where: { id: item.id } });
   }
-  console.log('CRUD AUDIT SUMMARY', JSON.stringify(results));
+  }
+  console.log('CRUD AUDIT SUMMARY', JSON.stringify({ resources: fixtures.length,
+    passed: results.filter(result => result.status === 'PASS').length,
+    failures: results.filter(result => result.status === 'FAIL') }));
   assert.equal(results.filter(result => result.status === 'FAIL').length, 0);
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(() => db.close());

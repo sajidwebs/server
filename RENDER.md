@@ -36,3 +36,25 @@ the administrator created above.
 Rotate the database password and JWT secret previously shared or committed.
 Environment files are excluded from Git; configure secrets in Render only.
 Removing a file from the current commit does not remove it from Git history.
+
+## Regional master data and verification
+
+`npm run seed:regional -- --apply` initializes the documented Odisha, West Bengal,
+and Delhi business masters. It preserves unrelated records and renames only the
+earlier seed-owned placeholders. HQ and territory codes follow the seeding guide;
+product classification and reference prices follow the product specification.
+Seeded contact addresses use `pamsforce.com`. Existing account activation and
+passwords are preserved. No sales or completed field activity is invented.
+
+`npm run test:crud` requires an isolated local PostgreSQL database with a test/audit
+name and a local API running with `NODE_ENV=test`. The API's test health metadata
+must match the database configuration before any writes can occur. Never point
+write tests at the client-visible database. Read-only checks can use
+`SMOKE_API_URL`, `SMOKE_EMAIL`, and `SMOKE_PASSWORD` with `node audit-http.js`.
+
+Validation on 15 November 2026: 45 resource groups passed their supported create,
+list, update, and delete/deactivate operations in an isolated local database.
+SVL has no update endpoint; work-type master currently supports create/list only.
+Validation also covered duplicate and invalid references, missing records, report
+dates, self-deletion, password changes, privilege checks, and disabled sessions.
+This does not exercise every approval transition or sales calculation branch.

@@ -99,7 +99,9 @@ app.get('/', (req, res) => {
 });
 
 // Test endpoint for JSON parsing
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({ status: 'ok',
+  ...(process.env.NODE_ENV === 'test' ? { testDatabase: db.config.database, testHost: db.config.host } : {})
+}));
 
 app.post('/test-json', (req, res) => {
   console.log('Test endpoint received:', req.body);

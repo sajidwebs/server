@@ -6,6 +6,9 @@ dotenv.config({ path: './.env' });
 
 async function seedDatabase() {
   try {
+    if (!['localhost', '127.0.0.1', '::1'].includes(sequelize.config.host)) {
+      throw new Error('This legacy reset seed is restricted to local databases. Use seed:regional for hosted master data.');
+    }
     // Import models inside function to avoid initialization order issues
     await sequelize.authenticate();
     console.log('✅ Database connected');

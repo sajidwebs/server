@@ -509,6 +509,9 @@ router.get('/reports', authenticate, async (req, res) => {
 });
 
 router.post('/seed-example', authenticate, async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(409).json({ message: 'Example sales seeding is disabled on the deployed service.' });
+  }
   await ensureSalesTables();
   const [product] = await Product.findAll({ limit: 1, order: [['id', 'ASC']] });
   const [stockist] = await Stockist.findAll({ limit: 1, order: [['id', 'ASC']] });

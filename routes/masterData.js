@@ -1956,6 +1956,9 @@ router.post('/migrate', authenticate, authorize(['ADMIN']), async (req, res) => 
 // Seed doctors and chemists (Admin only)
 router.post('/seed-data', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(409).json({ message: 'Example seeding is disabled on the deployed service. Use the documented regional master data initialization.' });
+    }
     const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Chemist } = require('../models');
     
     const doctorClasses = await DoctorClass.findAll({ where: { status: 'active' } });

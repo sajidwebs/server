@@ -59,7 +59,8 @@ router.post('/login', validateUserLogin, async (req, res) => {
     const { email, password } = req.body;
 
     // Find user by email
-    const user = await User.findOne({ where: { email } });
+    const { fn, col, where } = require('sequelize');
+    const user = await User.findOne({ where: where(fn('lower', col('email')), email.toLowerCase()) });
 
     if (!user) {
       return res.status(401).json({
