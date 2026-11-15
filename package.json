@@ -8,6 +8,8 @@
     "admin:create": "node create-admin.js",
     "seed:regional": "node seed-regional.js",
     "catalog:sync": "node sync-company-catalog.js",
+    "masters:sync": "node sync-department-masters.js",
+    "test:documents": "node test-document-alignment.js",
     "test:crud": "node audit-crud.js",
     "dev": "nodemon server.js",
     "db:recover": "node recover-local.js",

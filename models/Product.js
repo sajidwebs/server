@@ -145,7 +145,7 @@ const Product = sequelize.define('Product', {
   },
   gstRate: {
     type: DataTypes.DECIMAL(5, 2),
-    defaultValue: 18.00,
+    defaultValue: null,
     validate: {
       min: 0,
       max: 100
@@ -153,7 +153,7 @@ const Product = sequelize.define('Product', {
   },
   schedule: {
     type: DataTypes.STRING,
-    defaultValue: 'H'
+    defaultValue: null
   },
   therapeuticClass: {
     type: DataTypes.STRING

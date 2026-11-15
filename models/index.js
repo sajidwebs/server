@@ -22,8 +22,11 @@ const PackSize = require('./PackSize');
 const BrandGroup = require('./BrandGroup');
 const Strength = require('./Strength');
 const ProductPriceHistory = require('./ProductPriceHistory');
+ProductPriceHistory.belongsTo(User, { foreignKey: 'changed_by', as: 'changedByUser' });
 const ApprovalQueue = require('./ApprovalQueue');
 const ApprovalHistory = require('./ApprovalHistory');
+ApprovalQueue.belongsTo(User, { foreignKey: 'submitted_by', as: 'submitter' });
+ApprovalHistory.belongsTo(User, { foreignKey: 'approver_id', as: 'approver' });
 
 // Input & Sample Master Models
 const InputType = require('./InputType');

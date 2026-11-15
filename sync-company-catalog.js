@@ -37,14 +37,14 @@ async function syncCompanyCatalog() {
       const matches = snapshot.Product.filter(row => normalize(row.name) === normalize(item.name));
       if (matches.length > 1) throw new Error(`Multiple existing records match ${item.name}; resolve duplicates before importing.`);
       const category = await M.ProductCategory.findOne({ where: { category_name: item.category }, transaction });
-      const [brand] = await M.BrandGroup.findOrCreate({ where: { brand_group_name: item.name, division_id: division.id },
+      const [brand] = await M.BrandGroup.findOrCreate({ where: { brand_group_name: item.brandGroup || item.name, division_id: division.id },
         defaults: { short_name: item.code, ...owner }, transaction });
       await brand.update({ status: 'active' }, { transaction });
       brandIds.push(brand.id);
       const values = { name: item.name, short_name: item.name, division_id: division.id,
-        brand_group_id: brand.id, category_id: category.id, category: item.category,
+        brand_group_id: brand.id, category_id: category?.id || null, category: item.category,
         brand: item.name, manufacturer: catalog.company, status: 'active', isActive: true,
-        description: `${catalog.company} product. Official product information: ${item.url}`, updated_by: admin.id };
+        description: item.url ? `${catalog.company} product. Official product information: ${item.url}` : `${catalog.company} product. Source: ${item.source}. Commercial details await confirmation.`, updated_by: admin.id };
       let product;
       if (matches.length) {
         product = await M.Product.findByPk(matches[0].id, { transaction });

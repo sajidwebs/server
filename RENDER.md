@@ -72,3 +72,14 @@ SVL has no update endpoint; work-type master currently supports create/list only
 Validation also covered duplicate and invalid references, missing records, report
 dates, self-deletion, password changes, privilege checks, and disabled sessions.
 This does not exercise every approval transition or sales calculation branch.
+
+Department document reconciliation (15 November 2026): the catalogue additionally
+includes Osteoswift Gold and BGNOR M from `docs/test.xlsx`, Sheet1 B7/B12. BGNOR M's
+category is unknown. Neither product inherits example strengths, pack sizes or prices.
+The catalogue now contains nine products; the website remains the source for the original seven.
+Run `npm run masters:sync -- --apply` for the named doctor, input and expense master
+values from the department documents. It backs up affected tables and retires only
+untouched automatic example policies. It does not import example allowances, staff,
+sales, targets, sample pack sizes or policy thresholds.
+Run `npm run test:documents` only with the isolated local test database configured.
+See [document reconciliation](./DOCUMENT_ALIGNMENT_REVIEW.md) for sources and remaining gaps.

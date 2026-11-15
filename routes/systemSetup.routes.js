@@ -18,19 +18,7 @@ router.get('/call-average', async (req, res) => {
   try {
 
     
-    // Seed default data if none exists
-    const count = await CallAverageSetup.count();
-    if (count === 0) {
-      await CallAverageSetup.bulkCreate([
-        { designation: 'MR', min_field_working_days: 20, daily_calls: 11, doctor_calls: 8, chemist_calls: 3, monthly_calls: 220, quarterly_calls: 660, yearly_calls: 2640, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
-        { designation: 'TBM', min_field_working_days: 18, daily_calls: 10, doctor_calls: 7, chemist_calls: 3, monthly_calls: 180, quarterly_calls: 540, yearly_calls: 2160, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
-        { designation: 'ABM', min_field_working_days: 15, daily_calls: 8, doctor_calls: 5, chemist_calls: 3, monthly_calls: 120, quarterly_calls: 360, yearly_calls: 1440, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
-        { designation: 'RBM', min_field_working_days: 12, daily_calls: 6, doctor_calls: 4, chemist_calls: 2, monthly_calls: 72, quarterly_calls: 216, yearly_calls: 864, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
-        { designation: 'ZBM', min_field_working_days: 10, daily_calls: 5, doctor_calls: 3, chemist_calls: 2, monthly_calls: 50, quarterly_calls: 150, yearly_calls: 600, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
-        { designation: 'NSM', min_field_working_days: 8, daily_calls: 4, doctor_calls: 2, chemist_calls: 2, monthly_calls: 32, quarterly_calls: 96, yearly_calls: 384, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true }
-      ]);
-    }
-    
+    // Policies are configured explicitly by administrators, never seeded by a read.
     const setups = await CallAverageSetup.findAll({
       where: { isActive: true },
       order: [['designation', 'ASC'], ['effective_from', 'DESC']]
@@ -157,29 +145,7 @@ router.get('/coverage', async (req, res) => {
   try {
 
     
-    // Seed default data if none exists - separate for Doctor and Chemist
-    const count = await CoverageSetup.count();
-    if (count === 0) {
-      // Doctor Coverage Setup
-      await CoverageSetup.bulkCreate([
-        { entity_type: 'Doctor', designation: 'MR', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Doctor', designation: 'TBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Doctor', designation: 'ABM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Doctor', designation: 'RBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Doctor', designation: 'ZBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Doctor', designation: 'NSM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true }
-      ]);
-      // Chemist Coverage Setup
-      await CoverageSetup.bulkCreate([
-        { entity_type: 'Chemist', designation: 'MR', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Chemist', designation: 'TBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Chemist', designation: 'ABM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Chemist', designation: 'RBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Chemist', designation: 'ZBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
-        { entity_type: 'Chemist', designation: 'NSM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true }
-      ]);
-    }
-    
+    // Policies are configured explicitly by administrators, never seeded by a read.
     const setups = await CoverageSetup.findAll({
       where: { isActive: true },
       order: [['entity_type', 'ASC'], ['designation', 'ASC'], ['effective_from', 'DESC']]

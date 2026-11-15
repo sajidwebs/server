@@ -62,11 +62,11 @@ async function main() {
     };
 
     const classes = [];
-    for (const [name, short] of [['Class A', 'A'], ['Class B', 'B'], ['Class C', 'C'], ['Regular Prescriber', 'RP']]) {
+    for (const [name, short] of [['Regular Prescriber', 'RP'], ['Irregular Prescriber', 'IRP']]) {
       classes.push(await ensure('DoctorClass', { class_name: name }, { short_name: short }, name === 'Class C' ? { class_name: 'Sample Regular' } : null));
     }
     const categories = [];
-    for (const [name, short] of [['Consultant', 'CONS'], ['General Practitioner', 'GP'], ['Specialist', 'SPEC'], ['Sampark Doctor', 'SAMP']]) {
+    for (const [name, short] of [['Core', 'CORE'], ['A', 'A'], ['B', 'B'], ['C', 'C'], ['Sampark Doctor', 'SAMP'], ['Group B', 'GRPB']]) {
       categories.push(await ensure('DoctorCategory', { category_name: name }, { short_name: short }, name === 'General Practitioner' ? { category_name: 'Sample Clinic' } : null));
     }
     const specialties = [];
@@ -97,7 +97,7 @@ async function main() {
         const emailKey = `${firstName}.${lastName}.${routeCode}`.toLowerCase();
         const doctor = await ensure('Doctor', { email: `${emailKey}@pamsforce.com` }, {
           firstName, lastName, hq_id: hq.id, territory_id: territory.id, patch_id: patch.id, state,
-          class_id: classes[index % 3].id, category_id: categories[index % 3].id,
+          class_id: classes[index % classes.length].id, category_id: categories[index % categories.length].id,
           specialty_id: specialties[index % 2].id, specialty: specialties[index % 2].specialty_name,
           qualification_id: qualifications[index % 2].id, registration_number: null,
           full_address: `${area}, ${city}, ${state}`, address: `${area}, ${city}, ${state}`,

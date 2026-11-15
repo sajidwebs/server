@@ -689,8 +689,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'MARKETING']), async (req, re
       indications,
       dosage,
       hsnCode,
-      gstRate: gstRate || 18,
-      schedule: schedule || 'H',
+      gstRate: gstRate ?? null,
+      schedule: schedule ?? null,
       therapeuticClass,
       created_by: req.user.id
     });
@@ -873,7 +873,7 @@ router.get('/:id/price-history', async (req, res) => {
     const priceHistory = await ProductPriceHistory.findAll({
       where: { product_id: req.params.id },
       include: [
-        { model: require('./User'), as: 'changedByUser', attributes: ['id', 'name', 'role'] }
+        { model: require('../models').User, as: 'changedByUser', attributes: ['id', 'firstName', 'lastName', 'role'] }
       ],
       order: [['effective_from', 'DESC']]
     });

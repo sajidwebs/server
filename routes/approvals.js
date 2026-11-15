@@ -10,7 +10,10 @@ const ROLE_LEVELS = {
   'NSM': 5,
   'ZSM': 4,
   'RSM': 3,
+  'RBM': 3,
+  'ZBM': 4,
   'ABM': 2,
+  'MR': 1,
   'TBM': 1
 };
 
@@ -24,13 +27,18 @@ const getRoleLevel = (role) => {
   return ROLE_LEVELS[role] || 0;
 };
 
+const normalizeRole = role => {
+  const key = String(role || '').toUpperCase().replace(/[^A-Z]/g, '');
+  return ({ FIELDREPRESENTATIVE:'TBM', MR:'TBM', AREAMANAGER:'ABM', REGIONALMANAGER:'RSM', RBM:'RSM', ZONALMANAGER:'ZSM', ZBM:'ZSM', NATIONALMANAGER:'NSM' })[key] || key;
+};
+
 // Submit data for approval
 router.post('/submit/:entityType/:entityId', authenticate, async (req, res) => {
   try {
     const { entityType, entityId } = req.params;
     const { actionType, data } = req.body;
     
-    const userRole = req.user.role;
+    const userRole = normalizeRole(req.user.role);
     const userLevel = getRoleLevel(userRole);
     
     // Determine starting approval level based on user role
@@ -70,7 +78,7 @@ router.post('/submit/:entityType/:entityId', authenticate, async (req, res) => {
 // Get pending approvals for current user
 router.get('/pending', authenticate, async (req, res) => {
   try {
-    const userRole = req.user.role;
+    const userRole = normalizeRole(req.user.role);
     const userLevel = getRoleLevel(userRole);
     
     // Get all pending approvals that need this user's level
@@ -96,7 +104,7 @@ router.get('/pending', authenticate, async (req, res) => {
 });
 
 // Get all pending approvals (for dashboard)
-router.get('/all-pending', authenticate, authorize(['ADMIN', 'NSM', 'ZSM', 'RSM', 'ABM']), async (req, res) => {
+router.get('/all-pending', authenticate, authorize(['ADMIN', 'NSM', 'ZSM', 'RSM', 'ABM', 'RBM', 'ZBM', 'Area Manager', 'Regional Manager', 'Zonal Manager', 'National Manager']), async (req, res) => {
   try {
     const approvals = await ApprovalQueue.findAll({
       where: {
@@ -134,7 +142,7 @@ router.post('/:id/approve', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'This item is no longer pending' });
     }
     
-    const userRole = req.user.role;
+    const userRole = normalizeRole(req.user.role);
     const userLevel = getRoleLevel(userRole);
     const requiredLevel = approval.current_level + 1;
     
@@ -156,7 +164,7 @@ router.post('/:id/approve', authenticate, async (req, res) => {
     // Check if this is the final approval level (NSM = 5)
     const nextLevel = getNextApprovalLevel(approval.current_level);
     
-    if (nextLevel > 5 || userRole === 'ADMIN') {
+    if (nextLevel >= 5 || userRole === 'ADMIN') {
       // Final approval reached - update entity status
       approval.status = 'approved';
       await approval.save();
@@ -202,7 +210,7 @@ router.post('/:id/reject', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'This item is no longer pending' });
     }
     
-    const userRole = req.user.role;
+    const userRole = normalizeRole(req.user.role);
     const userLevel = getRoleLevel(userRole);
     const requiredLevel = approval.current_level + 1;
     

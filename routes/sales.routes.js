@@ -16,7 +16,10 @@ const { authenticate } = require('../middleware/auth');
 const roleRank = { admin: 100, nsm: 90, zbm: 80, rbm: 70, abm: 60, tbm: 50, mr: 40, user: 10 };
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-const normalizeRole = (role = '') => role.toLowerCase().replace(/[^a-z]/g, '');
+const normalizeRole = (role = '') => {
+  const key = role.toLowerCase().replace(/[^a-z]/g, '');
+  return ({ fieldrepresentative:'mr', areamanager:'abm', regionalmanager:'rbm', zonalmanager:'zbm', nationalmanager:'nsm', rsm:'rbm', zsm:'zbm' })[key] || key;
+};
 const userRank = (user) => roleRank[normalizeRole(user?.role)] || (normalizeRole(user?.role).includes('admin') ? 100 : 10);
 const isAdminLike = (user) => userRank(user) >= 90 || normalizeRole(user?.role).includes('admin');
 
@@ -125,7 +128,7 @@ const appendVisibility = async (req, where, params) => {
   const ids = await hierarchyUserIds(req.user);
   if (!ids) return { where, params };
   return {
-    where: `${where} AND (user_id IS NULL OR user_id IN (:visibleUserIds))`,
+    where: `${where} AND (user_id IN (:visibleUserIds) OR (user_id IS NULL AND created_by IN (:visibleUserIds)))`,
     params: { ...params, visibleUserIds: ids }
   };
 };
@@ -138,7 +141,7 @@ const selectRows = async (table, req, extraWhere = '1=1', extraParams = {}) => {
     where += ' AND financial_year = :financial_year';
     params.financial_year = req.query.financial_year;
   }
-  if (req.query.month) {
+  if (req.query.month && req.query.month !== 'all') {
     where += ' AND month = :month';
     params.month = Number(req.query.month);
   }
@@ -146,9 +149,14 @@ const selectRows = async (table, req, extraWhere = '1=1', extraParams = {}) => {
     where += ' AND product_id = :product_id';
     params.product_id = Number(req.query.product_id);
   }
+  const hasUser = ['sales_targets', 'sales_projection_entries', 'secondary_sales'].includes(table);
   if (req.query.user_id && req.query.user_id !== 'all') {
-    where += ' AND user_id = :user_id';
+    where += ` AND ${hasUser ? 'user_id' : 'created_by'} = :user_id`;
     params.user_id = Number(req.query.user_id);
+  }
+  if (req.query.division_id && req.query.division_id !== 'all') {
+    where += ' AND product_id IN (SELECT id FROM products WHERE division_id = :division_id)';
+    params.division_id = Number(req.query.division_id);
   }
   if (['sales_targets', 'sales_projection_entries', 'secondary_sales'].includes(table)) {
     if (req.query.hq_id && req.query.hq_id !== 'all') {
@@ -162,6 +170,15 @@ const selectRows = async (table, req, extraWhere = '1=1', extraParams = {}) => {
   }
   if (['sales_targets', 'sales_projection_entries', 'secondary_sales'].includes(table)) {
     ({ where, params } = await appendVisibility(req, where, params));
+  } else {
+    const ids = await hierarchyUserIds(req.user);
+    if (ids) { where += ' AND created_by IN (:visibleUserIds)'; params.visibleUserIds = ids; }
+    if (req.query.hq_id && req.query.hq_id !== 'all') {
+      where += ' AND stockist_id IN (SELECT id FROM stockists WHERE hq_id = :hq_id)'; params.hq_id = Number(req.query.hq_id);
+    }
+    if (req.query.state && req.query.state !== 'all') {
+      where += ' AND stockist_id IN (SELECT id FROM stockists WHERE state = :state)'; params.state = req.query.state;
+    }
   }
 
   return sequelize.query(
@@ -424,88 +441,41 @@ router.post('/locks', authenticate, async (req, res) => {
   res.status(201).json({ lock });
 });
 
+// Aggregate each transaction stream separately; joining raw rows multiplies totals.
+const reportData = async (req) => {
+  const tables = ['sales_targets', 'sales_projection_entries', 'secondary_sales', 'primary_sales', 'expiry_entries'];
+  const streams = await Promise.all(tables.map(table => selectRows(table, req)));
+  const products = await Product.findAll({ attributes: ['id', 'name', 'division_id', 'status'], raw: true });
+  return products.filter(p => (!req.query.product_id || req.query.product_id === 'all' || p.id === Number(req.query.product_id)) &&
+    (!req.query.division_id || req.query.division_id === 'all' || p.division_id === Number(req.query.division_id)))
+    .map(product => {
+      const sum = (stream, key) => money(streams[stream].filter(row => row.product_id === product.id).reduce((total, row) => total + parseNumber(row[key]), 0));
+      const target = sum(0, 'target_value'), achieved = sum(2, 'sale_value');
+      return { product_id: product.id, product_name: product.name, target_value: target,
+        projection_value: sum(1, 'projection_value'), achieved_value: achieved,
+        primary_value: sum(3, 'total_value'), expiry_value: sum(4, 'total_value'),
+        achievementPercent: target ? money(achieved / target * 100) : 0, status: product.status };
+    }).filter(row => row.status === 'active' || row.target_value || row.projection_value || row.achieved_value || row.primary_value || row.expiry_value)
+    .sort((a,b) => a.product_name.localeCompare(b.product_name));
+};
+
 router.get('/dashboard', authenticate, async (req, res) => {
-  await ensureSalesTables();
-  const params = {
-    financial_year: req.query.financial_year || financialYearFromDate(),
-    month: Number(req.query.month || new Date().getMonth() + 1),
-    product_id: req.query.product_id && req.query.product_id !== 'all' ? Number(req.query.product_id) : null,
-    user_id: req.query.user_id && req.query.user_id !== 'all' ? Number(req.query.user_id) : null,
-    hq_id: req.query.hq_id && req.query.hq_id !== 'all' ? Number(req.query.hq_id) : null,
-    division_id: req.query.division_id && req.query.division_id !== 'all' ? Number(req.query.division_id) : null,
-    state: req.query.state && req.query.state !== 'all' ? req.query.state : null
-  };
-  const productFilter = params.product_id ? ' AND product_id = :product_id' : '';
-  const userFilter = params.user_id ? ' AND user_id = :user_id' : '';
-  const hqFilter = params.hq_id ? ' AND hq_id = :hq_id' : '';
-  const stateFilter = params.state ? ' AND state = :state' : '';
-  const divisionFilter = params.division_id ? ' AND product_id IN (SELECT id FROM products WHERE division_id = :division_id)' : '';
-  const [summary] = await sequelize.query(
-    `SELECT
-      COALESCE((SELECT SUM(target_value) FROM sales_targets WHERE financial_year = :financial_year AND month = :month${productFilter}${userFilter}${hqFilter}${stateFilter}${divisionFilter}), 0) AS target,
-      COALESCE((SELECT SUM(projection_value) FROM sales_projection_entries WHERE financial_year = :financial_year AND month = :month${productFilter}${userFilter}${hqFilter}${stateFilter}${divisionFilter}), 0) AS projection,
-      COALESCE((SELECT SUM(sale_value) FROM secondary_sales WHERE financial_year = :financial_year AND month = :month${productFilter}${userFilter}${hqFilter}${stateFilter}${divisionFilter}), 0) AS achieved,
-      COALESCE((SELECT SUM(total_value) FROM primary_sales WHERE financial_year = :financial_year AND month = :month${productFilter}${divisionFilter}), 0) AS primary_sale,
-      COALESCE((SELECT SUM(total_value) FROM expiry_entries WHERE financial_year = :financial_year AND month = :month${productFilter}${divisionFilter}), 0) AS expiry_value,
-      COALESCE((SELECT is_locked FROM sales_month_locks WHERE financial_year = :financial_year AND month = :month), false) AS is_locked`,
-    { replacements: params, type: QueryTypes.SELECT }
-  );
-  const target = parseNumber(summary.target);
-  const achieved = parseNumber(summary.achieved);
-  res.json({
-    summary: {
-      ...summary,
-      monthName: monthNames[params.month - 1],
-      financial_year: params.financial_year,
-      achievementPercent: target ? money((achieved / target) * 100) : 0
-    }
-  });
+  const financial_year = req.query.financial_year || financialYearFromDate();
+  const month = req.query.month || String(new Date().getMonth() + 1);
+  const report = await reportData({ user: req.user, query: { ...req.query, financial_year, month } });
+  const sum = key => money(report.reduce((total,row) => total + row[key],0));
+  const target = sum('target_value'), achieved = sum('achieved_value');
+  const locks = month === 'all' ? [] : await sequelize.query('SELECT is_locked FROM sales_month_locks WHERE financial_year = :financial_year AND month = :month',
+    { replacements: { financial_year, month: Number(month) }, type: QueryTypes.SELECT });
+  res.json({ summary: { target, projection: sum('projection_value'), achieved,
+    primary_sale: sum('primary_value'), expiry_value: sum('expiry_value'),
+    is_locked: locks[0]?.is_locked || false, monthName: month === 'all' ? 'All months' : monthNames[Number(month)-1],
+    financial_year, achievementPercent: target ? money(achieved / target * 100) : 0 } });
 });
 
 router.get('/reports', authenticate, async (req, res) => {
-  await ensureSalesTables();
-  const financialYear = req.query.financial_year || financialYearFromDate();
-  const where = [];
-  const params = { financialYear };
-  if (req.query.product_id && req.query.product_id !== 'all') {
-    where.push('p.id = :product_id');
-    params.product_id = Number(req.query.product_id);
-  }
-  if (req.query.division_id && req.query.division_id !== 'all') {
-    where.push('p.division_id = :division_id');
-    params.division_id = Number(req.query.division_id);
-  }
-  if (req.query.state && req.query.state !== 'all') {
-    where.push('(t.state = :state OR pr.state = :state OR s.state = :state)');
-    params.state = req.query.state;
-  }
-  if (req.query.hq_id && req.query.hq_id !== 'all') {
-    where.push('(t.hq_id = :hq_id OR pr.hq_id = :hq_id OR s.hq_id = :hq_id)');
-    params.hq_id = Number(req.query.hq_id);
-  }
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  const rows = await sequelize.query(
-    `SELECT p.id AS product_id, p.name AS product_name,
-      COALESCE(SUM(t.target_value), 0) AS target_value,
-      COALESCE(SUM(pr.projection_value), 0) AS projection_value,
-      COALESCE(SUM(s.sale_value), 0) AS achieved_value,
-      COALESCE(SUM(e.total_value), 0) AS expiry_value
-    FROM products p
-    LEFT JOIN sales_targets t ON t.product_id = p.id AND t.financial_year = :financialYear
-    LEFT JOIN sales_projection_entries pr ON pr.product_id = p.id AND pr.financial_year = :financialYear
-    LEFT JOIN secondary_sales s ON s.product_id = p.id AND s.financial_year = :financialYear
-    LEFT JOIN expiry_entries e ON e.product_id = p.id AND e.financial_year = :financialYear
-    ${whereSql}
-    GROUP BY p.id, p.name
-    ORDER BY p.name ASC`,
-    { replacements: params, type: QueryTypes.SELECT }
-  );
-  const report = rows.map((row) => {
-    const target = parseNumber(row.target_value);
-    const achieved = parseNumber(row.achieved_value);
-    return { ...row, achievementPercent: target ? money((achieved / target) * 100) : 0 };
-  });
-  res.json({ report });
+  const query = { ...req.query, financial_year: req.query.financial_year || financialYearFromDate() };
+  res.json({ report: await reportData({user:req.user,query}) });
 });
 
 router.post('/seed-example', authenticate, async (req, res) => {
