@@ -13,8 +13,10 @@ app.set('trust proxy', 1);
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: () => process.env.NODE_ENV === 'development' ? 1000 : 100,
-  message: 'Too many requests from this IP, please try again later.'
+  max: Number(process.env.API_RATE_LIMIT_MAX) || 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests. Please wait a few minutes and try again.' }
 });
 
 // Apply middleware
@@ -36,6 +38,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Apply other middleware after body parsing
 app.use(limiter);
+app.use('/api/auth/login', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many unsuccessful login attempts. Please try again in 15 minutes.' }
+}));
 app.use(helmet());
 
 // Database connection and models
@@ -134,10 +144,7 @@ app.use('/api/marketing', require('./routes/marketing.routes'));
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
-  });
+  require('./utils/apiError').sendApiError(res, err);
 });
 
 // 404 handler

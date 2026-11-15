@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
@@ -48,9 +49,7 @@ const { authenticate } = require('../middleware/auth');
       });
     } catch (error) {
       console.error('Registration error:', error);
-      res.status(500).json({
-        message: 'Internal server error'
-      });
+      sendApiError(res, error);
     }
   });
 
@@ -105,10 +104,7 @@ router.post('/login', validateUserLogin, async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({
-      message: 'Internal server error',
-      error: error.message
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -138,9 +134,7 @@ router.get('/profile', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Profile error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 

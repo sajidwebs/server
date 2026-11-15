@@ -25,6 +25,9 @@ const authenticate = async (req, res, next) => {
         message: 'Invalid token. User not found.' 
       });
     }
+    if (!user.isActive) {
+      return res.status(401).json({ message: 'This account is deactivated. Contact your administrator.' });
+    }
     
     // Attach user to request object
     req.user = user;
@@ -46,6 +49,7 @@ const authorize = (...roles) => {
     
     // Handle both string and array inputs
     let roleList = roles;
+    roleList = roles.flat();
     if (roles.length === 1 && typeof roles[0] === 'string') {
       // If single string passed, check if it's comma-separated or single
       if (roles[0].includes(',')) {

@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "admin:create": "node create-admin.js",
+    "seed:regional": "node seed-regional.js",
+    "test:crud": "node audit-crud.js",
     "dev": "nodemon server.js",
     "db:recover": "node recover-local.js",
     "db:init-local": "node init-local-masters.js",

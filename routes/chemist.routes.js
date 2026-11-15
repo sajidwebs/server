@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Chemist, Sale, AuditLog } = require('../models');
@@ -23,20 +24,12 @@ const logAudit = async (recordId, action, userId, oldValue = null, newValue = nu
 };
 
 // Auto-migrate chemists table before any query
-async function ensureChemistColumns() {
-  try {
-    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
-    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
-    await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
-  } catch (e) {
-    // Ignore errors - columns may already exist
-  }
-}
+// Schema is initialized and verified once before the API starts.
 
 // Get all chemists
 router.get('/', authenticate, async (req, res) => {
   try {
-    await ensureChemistColumns();
+
     
     const chemists = await Chemist.findAll({
       order: [['createdAt', 'DESC']]
@@ -48,9 +41,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get chemists error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -71,9 +62,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get chemist error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -112,9 +101,7 @@ router.post('/', authenticate, validateChemist, async (req, res) => {
     });
   } catch (error) {
     console.error('Create chemist error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -162,9 +149,7 @@ router.put('/:id', authenticate, validateChemist, async (req, res) => {
     });
   } catch (error) {
     console.error('Update chemist error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -199,9 +184,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete chemist error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 

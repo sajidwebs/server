@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { ApprovalQueue, ApprovalHistory, Doctor, Chemist, Territory, Headquarter, Patch, Stockist, Hospital, SVL, InputAllocation, NoticeUpload, SOPPolicy, RateFixation, User } = require('../models');
@@ -62,7 +63,7 @@ router.post('/submit/:entityType/:entityId', authenticate, async (req, res) => {
       status: approval.status
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -90,7 +91,7 @@ router.get('/pending', authenticate, async (req, res) => {
     
     res.json(actionableApprovals);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -109,7 +110,7 @@ router.get('/all-pending', authenticate, authorize(['ADMIN', 'NSM', 'ZSM', 'RSM'
     
     res.json(approvals);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -181,7 +182,7 @@ router.post('/:id/approve', authenticate, async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -231,7 +232,7 @@ router.post('/:id/reject', authenticate, async (req, res) => {
       status: 'rejected'
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -269,7 +270,7 @@ router.get('/history/:entityType/:entityId', authenticate, async (req, res) => {
       history
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 

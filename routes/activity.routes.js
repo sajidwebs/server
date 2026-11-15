@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Activity, DoctorCallProduct, Doctor, DoctorClass, Product, SampleMaster, InputMaster } = require('../models');
@@ -49,9 +50,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get activities error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -93,9 +92,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get activity error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -160,9 +157,7 @@ router.post('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Create activity error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -203,9 +198,7 @@ router.put('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Update activity error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -237,9 +230,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete activity error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 

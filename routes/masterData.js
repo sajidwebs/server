@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { DoctorClass, DoctorCategory, DoctorSpecialty, DoctorQualification, Doctor, Territory, Headquarter, Chemist, Product, Activity, Hospital, InputType, InputClass, InputMaster, SampleMaster, PackSize, Patch, Stockist, SVL, InputAllocation, NoticeUpload, SOPPolicy, AuditLog, PatchHeadquarter, RateFixation, User } = require('../models');
@@ -42,10 +43,7 @@ const auditUpdate = async (tableName, recordId, userId, oldValue, record) => {
   await logAudit(tableName, recordId, 'UPDATE', userId, oldValue, toPlain(record));
 };
 
-const ensureStockistHospitalTerritoryColumns = async () => {
-  await sequelize.query(`ALTER TABLE stockists ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
-  await sequelize.query(`ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
-};
+// Stockist and hospital columns are verified during database startup.
 
 // ==================== DOCTOR CLASS ROUTES ====================
 
@@ -64,7 +62,7 @@ router.get('/doctor-classes', authenticate, async (req, res) => {
     });
     res.json(classes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -77,7 +75,7 @@ router.get('/doctor-classes/:id', authenticate, async (req, res) => {
     }
     res.json(doctorClass);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -95,7 +93,7 @@ router.post('/doctor-classes', authenticate, authorize(['ADMIN']), async (req, r
     
     res.status(201).json(doctorClass);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -117,7 +115,7 @@ router.put('/doctor-classes/:id', authenticate, authorize(['ADMIN']), async (req
     
     res.json(doctorClass);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -132,7 +130,7 @@ router.delete('/doctor-classes/:id', authenticate, authorize(['ADMIN']), async (
     await softDelete(doctorClass, 'doctor_classes', req.user.id);
     res.json({ message: 'Doctor class inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -153,7 +151,7 @@ router.get('/doctor-categories', authenticate, async (req, res) => {
     });
     res.json(categories);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -166,7 +164,7 @@ router.get('/doctor-categories/:id', authenticate, async (req, res) => {
     }
     res.json(category);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -184,7 +182,7 @@ router.post('/doctor-categories', authenticate, authorize(['ADMIN']), async (req
     
     res.status(201).json(category);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -206,7 +204,7 @@ router.put('/doctor-categories/:id', authenticate, authorize(['ADMIN']), async (
     
     res.json(category);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -232,7 +230,7 @@ router.delete('/doctor-categories/:id', authenticate, authorize(['ADMIN']), asyn
     await softDelete(category, 'doctor_categories', req.user.id);
     res.json({ message: 'Doctor category inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -253,7 +251,7 @@ router.get('/doctor-specialties', authenticate, async (req, res) => {
     });
     res.json(specialties);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -266,7 +264,7 @@ router.get('/doctor-specialties/:id', authenticate, async (req, res) => {
     }
     res.json(specialty);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -284,7 +282,7 @@ router.post('/doctor-specialties', authenticate, authorize(['ADMIN']), async (re
     
     res.status(201).json(specialty);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -306,7 +304,7 @@ router.put('/doctor-specialties/:id', authenticate, authorize(['ADMIN']), async 
     
     res.json(specialty);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -331,7 +329,7 @@ router.delete('/doctor-specialties/:id', authenticate, authorize(['ADMIN']), asy
     await softDelete(specialty, 'doctor_specialties', req.user.id);
     res.json({ message: 'Doctor specialty inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -352,7 +350,7 @@ router.get('/doctor-qualifications', authenticate, async (req, res) => {
     });
     res.json(qualifications);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -365,7 +363,7 @@ router.get('/doctor-qualifications/:id', authenticate, async (req, res) => {
     }
     res.json(qualification);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -383,7 +381,7 @@ router.post('/doctor-qualifications', authenticate, authorize(['ADMIN']), async 
     
     res.status(201).json(qualification);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -405,7 +403,7 @@ router.put('/doctor-qualifications/:id', authenticate, authorize(['ADMIN']), asy
     
     res.json(qualification);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -430,7 +428,7 @@ router.delete('/doctor-qualifications/:id', authenticate, authorize(['ADMIN']), 
     await softDelete(qualification, 'doctor_qualifications', req.user.id);
     res.json({ message: 'Doctor qualification inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -460,7 +458,7 @@ router.get('/doctors', authenticate, async (req, res) => {
     });
     res.json(doctors);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -479,7 +477,7 @@ router.get('/doctors/:id', authenticate, async (req, res) => {
     }
     res.json(doctor);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -526,7 +524,7 @@ router.post('/doctors', authenticate, authorize(['ADMIN']), async (req, res) => 
     
     res.status(201).json(doctor);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -577,7 +575,7 @@ router.put('/doctors/:id', authenticate, authorize(['ADMIN']), async (req, res) 
     
     res.json(doctor);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -592,7 +590,7 @@ router.delete('/doctors/:id', authenticate, authorize(['ADMIN']), async (req, re
     await softDelete(doctor, 'doctors', req.user.id);
     res.json({ message: 'Doctor inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -615,7 +613,7 @@ router.get('/input-types', authenticate, async (req, res) => {
     });
     res.json(types);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -628,7 +626,7 @@ router.get('/input-types/:id', authenticate, async (req, res) => {
     }
     res.json(inputType);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -647,7 +645,7 @@ router.post('/input-types', authenticate, authorize(['ADMIN']), async (req, res)
     
     res.status(201).json(inputType);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -669,7 +667,7 @@ router.put('/input-types/:id', authenticate, authorize(['ADMIN']), async (req, r
     
     res.json(inputType);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -694,7 +692,7 @@ router.delete('/input-types/:id', authenticate, authorize(['ADMIN']), async (req
     await softDelete(inputType, 'input_types', req.user.id);
     res.json({ message: 'Input type inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -715,7 +713,7 @@ router.get('/input-classes', authenticate, async (req, res) => {
     });
     res.json(classes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -728,7 +726,7 @@ router.get('/input-classes/:id', authenticate, async (req, res) => {
     }
     res.json(inputClass);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -747,7 +745,7 @@ router.post('/input-classes', authenticate, authorize(['ADMIN']), async (req, re
     
     res.status(201).json(inputClass);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -769,7 +767,7 @@ router.put('/input-classes/:id', authenticate, authorize(['ADMIN']), async (req,
     
     res.json(inputClass);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -794,7 +792,7 @@ router.delete('/input-classes/:id', authenticate, authorize(['ADMIN']), async (r
     await softDelete(inputClass, 'input_classes', req.user.id);
     res.json({ message: 'Input class inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -820,7 +818,7 @@ router.get('/inputs', authenticate, async (req, res) => {
     });
     res.json(inputs);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -837,7 +835,7 @@ router.get('/inputs/active', authenticate, async (req, res) => {
     });
     res.json(inputs);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -855,7 +853,7 @@ router.get('/inputs/:id', authenticate, async (req, res) => {
     }
     res.json(input);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -876,7 +874,7 @@ router.post('/inputs', authenticate, authorize(['ADMIN']), async (req, res) => {
     
     res.status(201).json(input);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -900,7 +898,7 @@ router.put('/inputs/:id', authenticate, authorize(['ADMIN']), async (req, res) =
     
     res.json(input);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -915,7 +913,7 @@ router.delete('/inputs/:id', authenticate, authorize(['ADMIN']), async (req, res
     await softDelete(input, 'input_masters', req.user.id);
     res.json({ message: 'Input inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -940,7 +938,7 @@ router.get('/samples', authenticate, async (req, res) => {
     });
     res.json(samples);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -957,7 +955,7 @@ router.get('/samples/active', authenticate, async (req, res) => {
     });
     res.json(samples);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -975,7 +973,7 @@ router.get('/samples/:id', authenticate, async (req, res) => {
     }
     res.json(sample);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -997,7 +995,7 @@ router.post('/samples', authenticate, authorize(['ADMIN']), async (req, res) => 
     
     res.status(201).json(sample);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1022,7 +1020,7 @@ router.put('/samples/:id', authenticate, authorize(['ADMIN']), async (req, res) 
     
     res.json(sample);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1037,7 +1035,7 @@ router.delete('/samples/:id', authenticate, authorize(['ADMIN']), async (req, re
     await softDelete(sample, 'sample_masters', req.user.id);
     res.json({ message: 'Sample inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1063,7 +1061,7 @@ router.get('/patches', authenticate, async (req, res) => {
     });
     res.json(patches);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1081,7 +1079,7 @@ router.get('/patches/:id', authenticate, async (req, res) => {
     }
     res.json(patch);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1107,7 +1105,7 @@ router.post('/patches', authenticate, authorize(['ADMIN']), async (req, res) => 
 
     res.status(201).json(patch);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1138,7 +1136,7 @@ router.put('/patches/:id', authenticate, authorize(['ADMIN']), async (req, res) 
 
     res.json(patch);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1157,7 +1155,7 @@ router.delete('/patches/:id', authenticate, authorize(['ADMIN']), async (req, re
     );
     res.json({ message: 'Patch inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1190,7 +1188,7 @@ router.post('/patches/:id/headquarters', authenticate, authorize(['ADMIN']), asy
 
     res.status(created ? 201 : 200).json(mapping);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1206,7 +1204,7 @@ router.delete('/patches/:id/headquarters/:hqId', authenticate, authorize(['ADMIN
     await softDelete(mapping, 'patch_headquarters', req.user.id);
     res.json({ message: 'Patch-HQ mapping inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1215,7 +1213,7 @@ router.delete('/patches/:id/headquarters/:hqId', authenticate, authorize(['ADMIN
 // Get all stockists (open to all authenticated users)
 router.get('/stockists', authenticate, async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const { status, hq_id, state, territory_id } = req.query;
     const where = {};
 
@@ -1235,14 +1233,14 @@ router.get('/stockists', authenticate, async (req, res) => {
     });
     res.json(stockists);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
 // Get single stockist
 router.get('/stockists/:id', authenticate, async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const stockist = await Stockist.findByPk(req.params.id, {
       include: [
         { model: Headquarter, as: 'headquarter' },
@@ -1255,14 +1253,14 @@ router.get('/stockists/:id', authenticate, async (req, res) => {
     }
     res.json(stockist);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
 // Create stockist (Admin only)
 router.post('/stockists', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const { stockist_name, mobile, contact_person, hq_id, state, address, patch_id, territory_id } = req.body;
 
     const stockist = await Stockist.create({
@@ -1280,14 +1278,14 @@ router.post('/stockists', authenticate, authorize(['ADMIN']), async (req, res) =
 
     res.status(201).json(stockist);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
 // Update stockist (Admin only)
 router.put('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const stockist = await Stockist.findByPk(req.params.id);
     if (!stockist) {
       return res.status(404).json({ error: 'Stockist not found' });
@@ -1310,7 +1308,7 @@ router.put('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, res
 
     res.json(stockist);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1325,7 +1323,7 @@ router.delete('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, 
     await softDelete(stockist, 'stockists', req.user.id);
     res.json({ message: 'Stockist inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1334,7 +1332,7 @@ router.delete('/stockists/:id', authenticate, authorize(['ADMIN']), async (req, 
 // Get all hospitals (open to all authenticated users)
 router.get('/hospitals', authenticate, async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const { status, hq_id, state, territory_id } = req.query;
     const where = {};
 
@@ -1354,14 +1352,14 @@ router.get('/hospitals', authenticate, async (req, res) => {
     });
     res.json(hospitals);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
 // Get single hospital
 router.get('/hospitals/:id', authenticate, async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const hospital = await Hospital.findByPk(req.params.id, {
       include: [
         { model: Headquarter, as: 'headquarter' },
@@ -1374,14 +1372,14 @@ router.get('/hospitals/:id', authenticate, async (req, res) => {
     }
     res.json(hospital);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
 // Create hospital (Admin only)
 router.post('/hospitals', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const { hospital_name, mobile, contact_person, hq_id, state, address, patch_id, territory_id } = req.body;
 
     const hospital = await Hospital.create({
@@ -1399,14 +1397,14 @@ router.post('/hospitals', authenticate, authorize(['ADMIN']), async (req, res) =
 
     res.status(201).json(hospital);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
 // Update hospital (Admin only)
 router.put('/hospitals/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    await ensureStockistHospitalTerritoryColumns();
+
     const hospital = await Hospital.findByPk(req.params.id);
     if (!hospital) {
       return res.status(404).json({ error: 'Hospital not found' });
@@ -1429,7 +1427,7 @@ router.put('/hospitals/:id', authenticate, authorize(['ADMIN']), async (req, res
 
     res.json(hospital);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1444,7 +1442,7 @@ router.delete('/hospitals/:id', authenticate, authorize(['ADMIN']), async (req, 
     await softDelete(hospital, 'hospitals', req.user.id);
     res.json({ message: 'Hospital inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1470,7 +1468,7 @@ router.get('/svl', authenticate, async (req, res) => {
     });
     res.json(svlEntries);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1491,7 +1489,7 @@ router.get('/svl/hq/:hq_id', authenticate, async (req, res) => {
     });
     res.json(svlEntries);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1512,7 +1510,7 @@ router.post('/svl', authenticate, authorize(['ADMIN']), async (req, res) => {
 
     res.status(201).json(svl);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1527,7 +1525,7 @@ router.delete('/svl/:id', authenticate, authorize(['ADMIN']), async (req, res) =
     await softDelete(svl, 'svl', req.user.id);
     res.json({ message: 'Doctor removed from active SVL successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1552,7 +1550,7 @@ router.get('/input-allocations', authenticate, async (req, res) => {
     });
     res.json(allocations);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1575,7 +1573,7 @@ router.post('/input-allocations', authenticate, authorize(['ADMIN']), async (req
 
     res.status(201).json(allocation);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1603,7 +1601,7 @@ router.put('/input-allocations/:id', authenticate, authorize(['ADMIN']), async (
 
     res.json(allocation);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1618,7 +1616,7 @@ router.delete('/input-allocations/:id', authenticate, authorize(['ADMIN']), asyn
     await softDelete(allocation, 'input_allocations', req.user.id);
     res.json({ message: 'Input allocation inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1642,7 +1640,7 @@ router.get('/notices', authenticate, async (req, res) => {
     });
     res.json(notices);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1663,7 +1661,7 @@ router.post('/notices', authenticate, authorize(['ADMIN']), async (req, res) => 
 
     res.status(201).json(notice);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1689,7 +1687,7 @@ router.put('/notices/:id', authenticate, authorize(['ADMIN']), async (req, res) 
 
     res.json(notice);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1704,7 +1702,7 @@ router.delete('/notices/:id', authenticate, authorize(['ADMIN']), async (req, re
     await softDelete(notice, 'notice_uploads', req.user.id);
     res.json({ message: 'Notice inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1728,7 +1726,7 @@ router.get('/sop-policies', authenticate, async (req, res) => {
     });
     res.json(policies);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1751,7 +1749,7 @@ router.post('/sop-policies', authenticate, authorize(['ADMIN']), async (req, res
 
     res.status(201).json(policy);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1779,7 +1777,7 @@ router.put('/sop-policies/:id', authenticate, authorize(['ADMIN']), async (req, 
 
     res.json(policy);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1794,7 +1792,7 @@ router.delete('/sop-policies/:id', authenticate, authorize(['ADMIN']), async (re
     await softDelete(policy, 'sop_policies', req.user.id);
     res.json({ message: 'SOP/Policy inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1821,7 +1819,7 @@ router.get('/rate-fixations', authenticate, async (req, res) => {
     });
     res.json(rates);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1847,7 +1845,7 @@ router.post('/rate-fixations', authenticate, authorize(['ADMIN']), async (req, r
 
     res.status(201).json(rate);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1879,7 +1877,7 @@ router.put('/rate-fixations/:id', authenticate, authorize(['ADMIN']), async (req
 
     res.json(rate);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1894,7 +1892,7 @@ router.delete('/rate-fixations/:id', authenticate, authorize(['ADMIN']), async (
     await softDelete(rate, 'rate_fixations', req.user.id, { updated_by: req.user.id });
     res.json({ message: 'Rate fixation inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1920,7 +1918,7 @@ router.get('/audit-logs', authenticate, authorize(['ADMIN']), async (req, res) =
     });
     res.json(logs);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -1945,11 +1943,11 @@ router.post('/migrate', authenticate, authorize(['ADMIN']), async (req, res) => 
     await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
     await sequelize.query(`ALTER TABLE chemists ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
 
-    await ensureStockistHospitalTerritoryColumns();
+
     
     res.json({ message: 'Migration completed successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -1997,7 +1995,7 @@ router.post('/seed-data', authenticate, authorize(['ADMIN']), async (req, res) =
       chemistsCount: chemists.length
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -2016,7 +2014,7 @@ router.get('/data-counts', authenticate, async (req, res) => {
       territories: territoryCount
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 

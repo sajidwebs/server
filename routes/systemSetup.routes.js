@@ -1,33 +1,22 @@
+const { sendApiError } = require('../utils/apiError');
+const { authenticate, authorize } = require('../middleware/auth');
 const express = require('express');
 const router = express.Router();
+router.use(authenticate);
+router.use((req, res, next) => ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? next() : authorize('admin')(req, res, next));
 const { CallAverageSetup, CoverageSetup, WorkTypeSetup, WorkTypeMaster, LeavePolicyMaster, UserLeaveBalance, User, Headquarter, Territory } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
 // Auto-migrate system setup tables before any query
-async function ensureSystemSetupColumns() {
-  try {
-    // Call Average Setup columns
-    await sequelize.query(`ALTER TABLE call_average_setup ADD COLUMN IF NOT EXISTS doctor_calls INTEGER DEFAULT 8`);
-    await sequelize.query(`ALTER TABLE call_average_setup ADD COLUMN IF NOT EXISTS chemist_calls INTEGER DEFAULT 3`);
-    
-    // Coverage Setup columns - new entity_type structure
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS entity_type VARCHAR(20) DEFAULT 'Doctor'`);
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS warning_level DECIMAL(5,2) DEFAULT 90.00`);
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS alert_level DECIMAL(5,2) DEFAULT 70.00`);
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS warning_color VARCHAR(20) DEFAULT 'warning'`);
-    await sequelize.query(`ALTER TABLE coverage_setup ADD COLUMN IF NOT EXISTS alert_color VARCHAR(20) DEFAULT 'danger'`);
-  } catch (e) {
-    // Ignore - columns may already exist
-  }
-}
+// Schema is initialized and verified once before the API starts.
 
 // ==================== CALL AVERAGE SETUP ====================
 
 // Get all call average setups
 router.get('/call-average', async (req, res) => {
   try {
-    await ensureSystemSetupColumns();
+
     
     // Seed default data if none exists
     const count = await CallAverageSetup.count();
@@ -48,7 +37,7 @@ router.get('/call-average', async (req, res) => {
     });
     res.json(setups);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -57,9 +46,9 @@ router.post('/call-average', async (req, res) => {
   try {
     const { designation, min_field_working_days, daily_calls, doctor_calls, chemist_calls, monthly_calls, quarterly_calls, yearly_calls, warning_threshold, alert_threshold, effective_from, effective_to } = req.body;
     
-    const docCalls = doctor_calls || 8;
-    const chemCalls = chemist_calls || 3;
-    const totalDailyCalls = daily_calls || (docCalls + chemCalls);
+    const docCalls = doctor_calls ?? 8;
+    const chemCalls = chemist_calls ?? 3;
+    const totalDailyCalls = daily_calls ?? (Number(docCalls) + Number(chemCalls));
     
     let calculatedMonthly = monthly_calls;
     let calculatedQuarterly = quarterly_calls;
@@ -93,7 +82,7 @@ router.post('/call-average', async (req, res) => {
     });
     res.status(201).json(setup);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -107,9 +96,9 @@ router.put('/call-average/:id', async (req, res) => {
     
     const { min_field_working_days, daily_calls, doctor_calls, chemist_calls, monthly_calls, quarterly_calls, yearly_calls, warning_threshold, alert_threshold, effective_from, effective_to, isActive } = req.body;
     
-    const docCalls = doctor_calls || setup.doctor_calls || 8;
-    const chemCalls = chemist_calls || setup.chemist_calls || 3;
-    const totalDailyCalls = daily_calls || (docCalls + chemCalls);
+    const docCalls = doctor_calls ?? setup.doctor_calls ?? 8;
+    const chemCalls = chemist_calls ?? setup.chemist_calls ?? 3;
+    const totalDailyCalls = daily_calls ?? (Number(docCalls) + Number(chemCalls));
     
     // Recalculate if needed
     let calculatedMonthly = monthly_calls;
@@ -143,7 +132,7 @@ router.put('/call-average/:id', async (req, res) => {
     
     res.json(setup);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -157,7 +146,7 @@ router.delete('/call-average/:id', async (req, res) => {
     await setup.update({ is_active: false });
     res.json({ message: 'Call average setup deactivated' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -166,7 +155,7 @@ router.delete('/call-average/:id', async (req, res) => {
 // Get all coverage setups
 router.get('/coverage', async (req, res) => {
   try {
-    await ensureSystemSetupColumns();
+
     
     // Seed default data if none exists - separate for Doctor and Chemist
     const count = await CoverageSetup.count();
@@ -197,7 +186,7 @@ router.get('/coverage', async (req, res) => {
     });
     res.json(setups);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -223,7 +212,7 @@ router.post('/coverage', async (req, res) => {
     });
     res.status(201).json(setup);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -238,7 +227,7 @@ router.put('/coverage/:id', async (req, res) => {
     await setup.update(req.body);
     res.json(setup);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -252,7 +241,7 @@ router.delete('/coverage/:id', async (req, res) => {
     await setup.update({ is_active: false });
     res.json({ message: 'Coverage setup deactivated' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -267,7 +256,7 @@ router.get('/work-type', async (req, res) => {
     });
     res.json(setups);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -280,7 +269,7 @@ router.get('/work-type-master', async (req, res) => {
     });
     res.json(types);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -296,7 +285,7 @@ router.post('/work-type-master', async (req, res) => {
     });
     res.status(201).json(type);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -305,12 +294,12 @@ router.post('/work-type', async (req, res) => {
   try {
     const { designation, field_work_days, office_work_days, total_working_days, mandatory_field_days, effective_from, effective_to } = req.body;
     
-    const totalDays = total_working_days || (field_work_days + office_work_days);
+    const totalDays = total_working_days ?? (Number(field_work_days ?? 24) + Number(office_work_days ?? 4));
     
     const setup = await WorkTypeSetup.create({
       designation,
-      field_work_days: field_work_days || 24,
-      office_work_days: office_work_days || 4,
+      field_work_days: field_work_days ?? 24,
+      office_work_days: office_work_days ?? 4,
       total_working_days: totalDays,
       mandatory_field_days: mandatory_field_days !== undefined ? mandatory_field_days : true,
       effective_from,
@@ -319,7 +308,7 @@ router.post('/work-type', async (req, res) => {
     });
     res.status(201).json(setup);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -333,11 +322,11 @@ router.put('/work-type/:id', async (req, res) => {
     
     const { field_work_days, office_work_days, total_working_days, mandatory_field_days, effective_from, effective_to, isActive } = req.body;
     
-    const totalDays = total_working_days || ((field_work_days || setup.field_work_days) + (office_work_days || setup.office_work_days));
+    const totalDays = total_working_days ?? (Number(field_work_days ?? setup.field_work_days) + Number(office_work_days ?? setup.office_work_days));
     
     await setup.update({
-      field_work_days: field_work_days || setup.field_work_days,
-      office_work_days: office_work_days || setup.office_work_days,
+      field_work_days: field_work_days ?? setup.field_work_days,
+      office_work_days: office_work_days ?? setup.office_work_days,
       total_working_days: totalDays,
       mandatory_field_days: mandatory_field_days !== undefined ? mandatory_field_days : setup.mandatory_field_days,
       effective_from: effective_from || setup.effective_from,
@@ -347,7 +336,7 @@ router.put('/work-type/:id', async (req, res) => {
     
     res.json(setup);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -361,7 +350,7 @@ router.delete('/work-type/:id', async (req, res) => {
     await setup.update({ is_active: false });
     res.json({ message: 'Work type setup deactivated' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -376,7 +365,7 @@ router.get('/leave-policy', async (req, res) => {
     });
     res.json(policies);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -399,7 +388,7 @@ router.post('/leave-policy', async (req, res) => {
     });
     res.status(201).json(policy);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -414,7 +403,7 @@ router.put('/leave-policy/:id', async (req, res) => {
     await policy.update(req.body);
     res.json(policy);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -428,7 +417,7 @@ router.delete('/leave-policy/:id', async (req, res) => {
     await policy.update({ is_active: false });
     res.json({ message: 'Leave policy deactivated' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -451,7 +440,7 @@ router.get('/leave-balance/:userId', async (req, res) => {
     });
     res.json(balances);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -486,7 +475,7 @@ router.post('/leave-balance/initialize', async (req, res) => {
     
     res.status(201).json(balances);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -507,7 +496,7 @@ router.put('/leave-balance/:id', async (req, res) => {
     
     res.json(balance);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -574,7 +563,7 @@ router.get('/compliance/:userId', async (req, res) => {
       workType: workTypeSetup
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -635,7 +624,7 @@ router.get('/compliance', async (req, res) => {
     
     res.json(complianceData);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendApiError(res, error, 500);
   }
 });
 

@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
@@ -63,7 +64,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
       hqAt100: totals.hqAt100
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -85,7 +86,7 @@ router.get('/campaigns', authenticate, async (req, res) => {
     });
     res.json(campaigns);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -95,7 +96,7 @@ router.get('/campaigns/:id', authenticate, async (req, res) => {
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
     res.json(campaign);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -107,7 +108,7 @@ router.post('/campaigns', authenticate, authorize(writeRoles), async (req, res) 
     }));
     res.status(201).json(campaign);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -118,7 +119,7 @@ router.put('/campaigns/:id', authenticate, authorize(writeRoles), async (req, re
     await campaign.update(calculateCampaignValues({ ...req.body, updated_by: req.user.id }));
     res.json(campaign);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -129,7 +130,7 @@ router.delete('/campaigns/:id', authenticate, authorize(writeRoles), async (req,
     await campaign.update({ status: 'cancelled', updated_by: req.user.id });
     res.json({ message: 'Campaign cancelled successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -141,7 +142,7 @@ router.get('/strategies', authenticate, async (req, res) => {
     });
     res.json(strategies);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -151,7 +152,7 @@ router.get('/strategies/:id', authenticate, async (req, res) => {
     if (!strategy) return res.status(404).json({ error: 'Brand strategy not found' });
     res.json(strategy);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -160,7 +161,7 @@ router.post('/strategies', authenticate, authorize(writeRoles), async (req, res)
     const strategy = await MarketingBrandStrategy.create({ ...req.body, created_by: req.user.id });
     res.status(201).json(strategy);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -171,7 +172,7 @@ router.put('/strategies/:id', authenticate, authorize(writeRoles), async (req, r
     await strategy.update({ ...req.body, updated_by: req.user.id });
     res.json(strategy);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -182,7 +183,7 @@ router.delete('/strategies/:id', authenticate, authorize(writeRoles), async (req
     await strategy.update({ status: 'inactive', updated_by: req.user.id });
     res.json({ message: 'Brand strategy inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -197,7 +198,7 @@ router.get('/rcpa', authenticate, async (req, res) => {
     });
     res.json(rcpas);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -212,7 +213,7 @@ router.get('/rcpa/:id', authenticate, async (req, res) => {
     if (!rcpa) return res.status(404).json({ error: 'RCPA not found' });
     res.json(rcpa);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -221,7 +222,7 @@ router.post('/rcpa', authenticate, authorize(marketingRoles), async (req, res) =
     const rcpa = await MarketingRCPA.create({ ...req.body, created_by: req.user.id });
     res.status(201).json(rcpa);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -232,7 +233,7 @@ router.put('/rcpa/:id', authenticate, authorize(marketingRoles), async (req, res
     await rcpa.update({ ...req.body, updated_by: req.user.id });
     res.json(rcpa);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -243,7 +244,7 @@ router.delete('/rcpa/:id', authenticate, authorize(marketingRoles), async (req, 
     await rcpa.update({ status: 'closed', updated_by: req.user.id });
     res.json({ message: 'RCPA closed successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -259,7 +260,7 @@ router.get('/rcpa/:id/entries', authenticate, async (req, res) => {
     });
     res.json(entries);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -278,7 +279,7 @@ router.post('/rcpa/:id/entries', authenticate, async (req, res) => {
     });
     res.status(201).json(entry);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -297,7 +298,7 @@ router.put('/rcpa/:id/entries/:entryId', authenticate, async (req, res) => {
     });
     res.json(entry);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -310,7 +311,7 @@ router.delete('/rcpa/:id/entries/:entryId', authenticate, authorize(marketingRol
     await entry.destroy();
     res.json({ message: 'RCPA entry deleted successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 

@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Headquarter, Territory, User, Doctor, Chemist } = require('../models');
@@ -21,9 +22,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get headquarters error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -51,9 +50,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get headquarter error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -97,9 +94,7 @@ router.post('/', authenticate, async (req, res) => {
         message: 'Headquarter code already exists'
       });
     }
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -150,9 +145,7 @@ router.put('/:id', authenticate, async (req, res) => {
         message: 'Headquarter code already exists'
       });
     }
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -192,9 +185,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete headquarter error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -227,9 +218,7 @@ router.get('/list/with-counts', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get headquarters with counts error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 

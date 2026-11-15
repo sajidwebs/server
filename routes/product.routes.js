@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const {
@@ -43,7 +44,7 @@ router.get('/divisions', async (req, res) => {
     });
     res.json(divisions);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -56,7 +57,7 @@ router.get('/divisions/:id', async (req, res) => {
     }
     res.json(division);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -75,7 +76,7 @@ router.post('/divisions', authenticate, authorize(['ADMIN']), async (req, res) =
     
     res.status(201).json(division);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -99,7 +100,7 @@ router.put('/divisions/:id', authenticate, authorize(['ADMIN']), async (req, res
     
     res.json(division);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -125,7 +126,7 @@ router.delete('/divisions/:id', authenticate, authorize(['ADMIN']), async (req, 
     await division.update({ status: 'inactive' });
     res.json({ message: 'Division inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -145,7 +146,7 @@ router.get('/categories', async (req, res) => {
     });
     res.json(categories);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -158,7 +159,7 @@ router.get('/categories/:id', async (req, res) => {
     }
     res.json(category);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -177,7 +178,7 @@ router.post('/categories', authenticate, authorize(['ADMIN', 'MARKETING']), asyn
     
     res.status(201).json(category);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -201,7 +202,7 @@ router.put('/categories/:id', authenticate, authorize(['ADMIN', 'MARKETING']), a
     
     res.json(category);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -227,7 +228,7 @@ router.delete('/categories/:id', authenticate, authorize(['ADMIN']), async (req,
     await category.update({ status: 'inactive' });
     res.json({ message: 'Category inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -246,7 +247,7 @@ router.get('/pack-sizes', async (req, res) => {
     });
     res.json(packSizes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -259,7 +260,7 @@ router.get('/pack-sizes/:id', async (req, res) => {
     }
     res.json(packSize);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -277,7 +278,7 @@ router.post('/pack-sizes', authenticate, authorize(['ADMIN', 'MARKETING']), asyn
     
     res.status(201).json(packSize);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -300,7 +301,7 @@ router.put('/pack-sizes/:id', authenticate, authorize(['ADMIN', 'MARKETING']), a
     
     res.json(packSize);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -326,7 +327,7 @@ router.delete('/pack-sizes/:id', authenticate, authorize(['ADMIN']), async (req,
     await packSize.update({ status: 'inactive' });
     res.json({ message: 'Pack size inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -349,7 +350,7 @@ router.get('/brand-groups', async (req, res) => {
     });
     res.json(brandGroups);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -366,7 +367,7 @@ router.get('/brand-groups/:id', async (req, res) => {
     }
     res.json(brandGroup);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -385,7 +386,7 @@ router.post('/brand-groups', authenticate, authorize(['ADMIN', 'MARKETING']), as
     
     res.status(201).json(brandGroup);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -409,7 +410,7 @@ router.put('/brand-groups/:id', authenticate, authorize(['ADMIN', 'MARKETING']),
     
     res.json(brandGroup);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -435,7 +436,7 @@ router.delete('/brand-groups/:id', authenticate, authorize(['ADMIN']), async (re
     await brandGroup.update({ status: 'inactive' });
     res.json({ message: 'Brand group inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -454,7 +455,7 @@ router.get('/strengths', async (req, res) => {
     });
     res.json(strengths);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -467,7 +468,7 @@ router.get('/strengths/:id', async (req, res) => {
     }
     res.json(strength);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -486,7 +487,7 @@ router.post('/strengths', authenticate, authorize(['ADMIN', 'MARKETING']), async
     
     res.status(201).json(strength);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -510,7 +511,7 @@ router.put('/strengths/:id', authenticate, authorize(['ADMIN', 'MARKETING']), as
     
     res.json(strength);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -536,7 +537,7 @@ router.delete('/strengths/:id', authenticate, authorize(['ADMIN']), async (req, 
     await strength.update({ status: 'inactive' });
     res.json({ message: 'Strength inactivated successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -576,9 +577,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get products error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -603,9 +602,7 @@ router.get('/active', async (req, res) => {
     });
   } catch (error) {
     console.error('Get active products error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -635,9 +632,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get product error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -722,9 +717,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'MARKETING']), async (req, re
     });
   } catch (error) {
     console.error('Create product error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -827,9 +820,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'MARKETING']), async (req, 
     });
   } catch (error) {
     console.error('Update product error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -866,9 +857,7 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
     });
   } catch (error) {
     console.error('Delete product error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -897,9 +886,7 @@ router.get('/:id/price-history', async (req, res) => {
     });
   } catch (error) {
     console.error('Get price history error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 

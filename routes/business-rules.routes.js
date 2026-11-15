@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
@@ -53,9 +54,7 @@ router.get('/status', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get business rules status error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -78,9 +77,7 @@ router.post('/validate-doctor-call', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Validate doctor call error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -129,9 +126,7 @@ router.get('/feature-access/:feature', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get feature access error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -165,9 +160,7 @@ router.post('/admin-override', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Admin override error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -194,7 +187,7 @@ router.get('/compliance/:userId', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get compliance error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    sendApiError(res, error);
   }
 });
 
@@ -206,7 +199,7 @@ router.get('/expense-eligibility/:userId', authenticate, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Check expense eligibility error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    sendApiError(res, error);
   }
 });
 
@@ -218,7 +211,7 @@ router.get('/incentive-eligibility/:userId', authenticate, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Check incentive eligibility error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    sendApiError(res, error);
   }
 });
 

@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Territory, Headquarter, User, Doctor, Chemist } = require('../models');
@@ -19,9 +20,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get territories error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -39,9 +38,7 @@ router.get('/by-hq/:hqId', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get territories by HQ error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -66,9 +63,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get territory error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -104,9 +99,7 @@ router.post('/', authenticate, async (req, res) => {
         message: 'Territory code already exists'
       });
     }
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -149,9 +142,7 @@ router.put('/:id', authenticate, async (req, res) => {
         message: 'Territory code already exists'
       });
     }
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -189,9 +180,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete territory error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    sendApiError(res, error);
   }
 });
 

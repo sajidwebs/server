@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 // Express 4 does not forward rejected async handlers to error middleware.
@@ -199,7 +200,10 @@ const assertMonthOpen = async (financialYear, month) => {
 };
 
 const handleRouteError = (res, error, fallback) => {
-  res.status(error.statusCode || 500).json({ message: error.message || fallback });
+  if ([400, 403, 404, 409, 423].includes(error.statusCode)) {
+    return res.status(error.statusCode).json({ message: error.message });
+  }
+  return sendApiError(res, error);
 };
 
 const applyGeo = async (payload) => {
@@ -271,7 +275,7 @@ router.get('/', authenticate, async (req, res) => {
     const sales = await Sale.findAll({ order: [['date', 'DESC']] });
     res.json({ message: 'Sales retrieved successfully', sales });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching sales' });
+    sendApiError(res, error);
   }
 });
 
@@ -282,7 +286,7 @@ router.post('/', authenticate, async (req, res) => {
     const newSale = await Sale.create(saleData);
     res.status(201).json({ message: 'Sale created successfully', sale: newSale });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating sale' });
+    sendApiError(res, error);
   }
 });
 

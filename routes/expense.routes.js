@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
@@ -19,7 +20,7 @@ router.get('/expense-types', authenticate, async (req, res) => {
     });
     res.json(types);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -30,7 +31,7 @@ router.get('/expense-types/:id', authenticate, async (req, res) => {
     if (!type) return res.status(404).json({ error: 'Expense type not found' });
     res.json(type);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -47,7 +48,7 @@ router.post('/expense-types', authenticate, authorize(['ADMIN']), async (req, re
     });
     res.status(201).json(type);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -67,7 +68,7 @@ router.put('/expense-types/:id', authenticate, authorize(['ADMIN']), async (req,
     });
     res.json(type);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -79,7 +80,7 @@ router.delete('/expense-types/:id', authenticate, authorize(['ADMIN']), async (r
     await type.destroy();
     res.json({ message: 'Expense type deleted successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -98,7 +99,7 @@ router.get('/travel-modes', authenticate, async (req, res) => {
     });
     res.json(modes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -109,7 +110,7 @@ router.get('/travel-modes/:id', authenticate, async (req, res) => {
     if (!mode) return res.status(404).json({ error: 'Travel mode not found' });
     res.json(mode);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -127,7 +128,7 @@ router.post('/travel-modes', authenticate, authorize(['ADMIN']), async (req, res
     });
     res.status(201).json(mode);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -148,7 +149,7 @@ router.put('/travel-modes/:id', authenticate, authorize(['ADMIN']), async (req, 
     });
     res.json(mode);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -160,7 +161,7 @@ router.delete('/travel-modes/:id', authenticate, authorize(['ADMIN']), async (re
     await mode.destroy();
     res.json({ message: 'Travel mode deleted successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -185,7 +186,7 @@ router.get('/fare-charts', authenticate, async (req, res) => {
     });
     res.json(charts);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -200,7 +201,7 @@ router.get('/fare-charts/:id', authenticate, async (req, res) => {
     if (!chart) return res.status(404).json({ error: 'Fare chart not found' });
     res.json(chart);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -213,7 +214,7 @@ router.post('/fare-charts', authenticate, authorize(['ADMIN']), async (req, res)
     });
     res.status(201).json(chart);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -229,7 +230,7 @@ router.put('/fare-charts/:id', authenticate, authorize(['ADMIN']), async (req, r
     });
     res.json(chart);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -241,7 +242,7 @@ router.delete('/fare-charts/:id', authenticate, authorize(['ADMIN']), async (req
     await chart.destroy();
     res.json({ message: 'Fare chart deleted successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -272,7 +273,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(expenses);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -369,7 +370,7 @@ router.get('/report', authenticate, async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -388,7 +389,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!expense) return res.status(404).json({ error: 'Expense entry not found' });
     res.json(expense);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -429,7 +430,7 @@ router.post('/', authenticate, async (req, res) => {
 
     res.status(201).json(expense);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -446,7 +447,7 @@ router.put('/:id', authenticate, async (req, res) => {
 
     res.json(expense);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -458,7 +459,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     await expense.destroy();
     res.json({ message: 'Expense entry deleted successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -475,7 +476,7 @@ router.post('/:id/submit', authenticate, async (req, res) => {
 
     res.json({ message: 'Expense submitted successfully', expense });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -494,7 +495,7 @@ router.post('/:id/approve', authenticate, authorize(['ADMIN', 'manager']), async
 
     res.json({ message: 'Expense approved successfully', expense });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -516,7 +517,7 @@ router.post('/:id/reject', authenticate, authorize(['ADMIN', 'manager']), async 
 
     res.json({ message: 'Expense rejected', expense });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -539,7 +540,7 @@ router.post('/:id/additions', authenticate, async (req, res) => {
 
     res.status(201).json(addition);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -552,7 +553,7 @@ router.get('/:id/additions', authenticate, async (req, res) => {
     });
     res.json(additions);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -564,7 +565,7 @@ router.delete('/additions/:id', authenticate, async (req, res) => {
     await addition.destroy();
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 

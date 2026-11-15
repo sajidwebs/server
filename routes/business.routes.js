@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Business } = require('../models');
@@ -45,9 +46,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get business entries error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -75,9 +74,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get business entry error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -111,9 +108,7 @@ router.post('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Create business entry error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -154,9 +149,7 @@ router.put('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Update business entry error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -185,9 +178,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete business entry error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 

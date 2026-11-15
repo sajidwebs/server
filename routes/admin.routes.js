@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Op, fn, col, where } = require('sequelize');
@@ -33,7 +34,7 @@ const requireAdmin = async (req, res, next) => {
 };
 
 // Apply attachUser to all routes
-router.use(attachUser);
+router.use(authenticate);
 
 // ==================== DASHBOARD (accessible to ALL authenticated users) ====================
 router.get('/dashboard-stats', async (req, res) => {
@@ -131,7 +132,7 @@ router.get('/dashboard-stats', async (req, res) => {
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
-    res.status(500).json({ message: 'Error fetching dashboard statistics' });
+    sendApiError(res, error);
   }
 });
 
@@ -188,7 +189,7 @@ router.get('/users', async (req, res) => {
     res.json(formattedUsers);
   } catch (error) {
     console.error('Users fetch error:', error);
-    res.status(500).json({ message: 'Error fetching users' });
+    sendApiError(res, error);
   }
 });
 
@@ -196,8 +197,10 @@ router.get('/users', async (req, res) => {
 router.post('/users', requireAdmin, async (req, res) => {
   try {
     const { firstName, lastName, fullName, username, email, mobileNumber, role, employeeId, employeeType, hq_id, territory_id, reportingTo, assigned_manager_id, isActive, password } = req.body;
-    const rawPassword = password || (Math.random().toString(36).slice(-8) + '123');
-    const hashedPassword = await hashPassword(rawPassword);
+    if (typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ message: 'Set a password with at least 8 characters for the new user.' });
+    }
+    const hashedPassword = await hashPassword(password);
 
     const newUser = await User.create({
       firstName, lastName, fullName: fullName || `${firstName} ${lastName}`, username, email,
@@ -215,19 +218,29 @@ router.post('/users', requireAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('User creation error:', error);
-    res.status(500).json({ message: 'Error creating user' });
+    sendApiError(res, error);
   }
 });
 
 // Update user
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:id', requireAdmin, async (req, res) => {
   try {
+    if (Number(req.params.id) === req.user.id &&
+        (req.body.isActive === false || (req.body.role !== undefined && String(req.body.role).toLowerCase() !== 'admin'))) {
+      return res.status(409).json({ message: 'You cannot deactivate or remove administrator access from your own account.' });
+    }
     const { id } = req.params;
     const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const fields = ['firstName', 'lastName', 'fullName', 'username', 'email', 'mobileNumber', 'role', 'employeeId', 'employeeType', 'hq_id', 'territory_id', 'reportingTo', 'assigned_manager_id', 'isActive'];
     const updateData = {};
+    if (req.body.password !== undefined && req.body.password !== null && req.body.password !== '') {
+      if (typeof req.body.password !== 'string' || req.body.password.length < 8) {
+        return res.status(400).json({ message: 'The new password must contain at least 8 characters.' });
+      }
+      updateData.password = await hashPassword(req.body.password);
+    }
     fields.forEach(f => {
       if (req.body[f] !== undefined) updateData[f] = req.body[f];
     });
@@ -239,20 +252,23 @@ router.put('/users/:id', async (req, res) => {
     res.json({ id: user.id, ...Object.fromEntries(fields.map(f => [f, user[f]])) });
   } catch (error) {
     console.error('User update error:', error);
-    res.status(500).json({ message: 'Error updating user' });
+    sendApiError(res, error);
   }
 });
 
 // Delete user (admin only)
 router.delete('/users/:id', requireAdmin, async (req, res) => {
   try {
+    if (Number(req.params.id) === req.user.id) {
+      return res.status(409).json({ message: 'You cannot delete your own account.' });
+    }
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
     await user.destroy();
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('User deletion error:', error);
-    res.status(500).json({ message: 'Error deleting user' });
+    sendApiError(res, error);
   }
 });
 
@@ -260,6 +276,11 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
 router.get('/reports', async (req, res) => {
   try {
     const { type, startDate, endDate } = req.query;
+    const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') &&
+      !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+    if (!validDate(startDate) || !validDate(endDate) || startDate > endDate) {
+      return res.status(400).json({ message: 'Choose valid start and end dates in chronological order.' });
+    }
     let reportData = {};
     switch (type) {
       case 'activity': reportData = await getDailyVisitsReport(startDate, endDate); break;
@@ -280,7 +301,7 @@ router.get('/reports', async (req, res) => {
     res.json(reportData);
   } catch (error) {
     console.error('Report error:', error);
-    res.status(500).json({ message: 'Error generating report' });
+    sendApiError(res, error);
   }
 });
 

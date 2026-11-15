@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { DayCall } = require('../models');
@@ -35,9 +36,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get day calls error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -65,9 +64,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get day call error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -100,9 +97,7 @@ router.post('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Create day call error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -142,9 +137,7 @@ router.put('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Update day call error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -173,9 +166,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete day call error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 

@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Doctor, Business, Sale, AuditLog } = require('../models');
@@ -23,24 +24,12 @@ const logAudit = async (recordId, action, userId, oldValue = null, newValue = nu
 };
 
 // Auto-migrate doctors table before any query
-async function ensureDoctorColumns() {
-  try {
-    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS class_id INTEGER`);
-    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS specialty_id INTEGER`);
-    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS category_id INTEGER`);
-    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS qualification_id INTEGER`);
-    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS territory_id INTEGER`);
-    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS hq_id INTEGER`);
-    await sequelize.query(`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS current_approval_level INTEGER DEFAULT 0`);
-  } catch (e) {
-    // Ignore errors - columns may already exist
-  }
-}
+// Schema is initialized and verified once before the API starts.
 
 // Get all doctors
 router.get('/', authenticate, async (req, res) => {
   try {
-    await ensureDoctorColumns();
+
     
     const doctors = await Doctor.findAll({
       order: [['createdAt', 'DESC']]
@@ -52,9 +41,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get doctors error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -75,9 +62,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get doctor error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -118,8 +103,8 @@ router.post('/', authenticate, validateDoctor, async (req, res) => {
       start_date,
       end_date,
       created_by: req.user.id,
-      approval_status: req.user.role === 'ADMIN' ? 'approved' : 'pending',
-      current_approval_level: req.user.role === 'ADMIN' ? 0 : 1
+      approval_status: String(req.user.role).toLowerCase() === 'admin' ? 'approved' : 'pending',
+      current_approval_level: String(req.user.role).toLowerCase() === 'admin' ? 0 : 1
     });
     await logAudit(doctor.id, 'CREATE', req.user.id, null, toPlain(doctor));
     
@@ -129,9 +114,7 @@ router.post('/', authenticate, validateDoctor, async (req, res) => {
     });
   } catch (error) {
     console.error('Create doctor error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -190,9 +173,7 @@ router.put('/:id', authenticate, validateDoctor, async (req, res) => {
     });
   } catch (error) {
     console.error('Update doctor error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -227,9 +208,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete doctor error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 

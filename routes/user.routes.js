@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { User, Activity, Sale, Projection, DayCall } = require('../models');
@@ -81,10 +82,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Dashboard error:', error);
-    res.status(500).json({ 
-      message: 'Error fetching dashboard data',
-      error: error.message
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -100,9 +98,7 @@ router.get('/', authenticate, authorize('admin'), async (req, res) => {
     });
   } catch (error) {
     console.error('Get users error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -125,9 +121,7 @@ router.get('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
@@ -152,6 +146,13 @@ router.put('/:id', authenticate, async (req, res) => {
     }
     
     // Update user
+    if (Number(req.params.id) === req.user.id && String(req.user.role).toLowerCase() === 'admin' &&
+        (isActive === false || (role !== undefined && String(role).toLowerCase() !== 'admin'))) {
+      return res.status(409).json({ message: 'You cannot deactivate or remove administrator access from your own account.' });
+    }
+    if (String(req.user.role).toLowerCase() !== 'admin' && (role !== undefined || isActive !== undefined)) {
+      return res.status(403).json({ message: 'Only an administrator can change roles or account status.' });
+    }
     await user.update({
       firstName,
       lastName,
@@ -173,15 +174,16 @@ router.put('/:id', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Update user error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 
 // Delete user (admin only)
 router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
+    if (Number(req.params.id) === req.user.id) {
+      return res.status(409).json({ message: 'You cannot delete your own account.' });
+    }
     const user = await User.findByPk(req.params.id);
     
     if (!user) {
@@ -197,9 +199,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
     });
   } catch (error) {
     console.error('Delete user error:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
-    });
+    sendApiError(res, error);
   }
 });
 

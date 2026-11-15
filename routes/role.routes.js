@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Role, Permission, RolePermission, User } = require('../models');
@@ -18,7 +19,7 @@ router.get('/', authenticate, async (req, res) => {
     });
     res.json(roles);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -33,7 +34,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!role) return res.status(404).json({ error: 'Role not found' });
     res.json(role);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -51,7 +52,7 @@ router.post('/', authenticate, authorize(['ADMIN']), async (req, res) => {
     });
     res.status(201).json(role);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -72,7 +73,7 @@ router.put('/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
     });
     res.json(role);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -90,7 +91,7 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
     await role.destroy();
     res.json({ message: 'Role deleted successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -104,7 +105,7 @@ router.get('/permissions/all', authenticate, async (req, res) => {
     });
     res.json(permissions);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 
@@ -121,7 +122,7 @@ router.post('/permissions', authenticate, authorize(['ADMIN']), async (req, res)
     });
     res.status(201).json(permission);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -150,7 +151,7 @@ router.post('/:id/permissions', authenticate, authorize(['ADMIN']), async (req, 
 
     res.json({ message: 'Permissions assigned successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendApiError(res, error, 400);
   }
 });
 
@@ -165,7 +166,7 @@ router.get('/:id/permissions', authenticate, async (req, res) => {
     if (!role) return res.status(404).json({ error: 'Role not found' });
     res.json(role.permissions || []);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendApiError(res, error, 500);
   }
 });
 

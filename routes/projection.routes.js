@@ -1,3 +1,4 @@
+const { sendApiError } = require('../utils/apiError');
 const express = require('express');
 const router = express.Router();
 const { Projection } = require('../models');
@@ -34,7 +35,7 @@ router.get('/', authenticate, async (req, res) => {
     res.json({ message: 'Projections retrieved successfully', projections });
   } catch (error) {
     console.error('Error fetching projections:', error);
-    res.status(500).json({ message: 'Error fetching projections' });
+    sendApiError(res, error);
   }
 });
 
@@ -46,7 +47,7 @@ router.post('/', authenticate, async (req, res) => {
     res.status(201).json({ message: 'Projection created successfully', projection: newProjection });
   } catch (error) {
     console.error('Error creating projection:', error);
-    res.status(500).json({ message: 'Error creating projection' });
+    sendApiError(res, error);
   }
 });
 
@@ -59,7 +60,7 @@ router.put('/:id', authenticate, async (req, res) => {
     res.json({ message: 'Projection updated successfully', projection });
   } catch (error) {
     console.error('Error updating projection:', error);
-    res.status(500).json({ message: 'Error updating projection' });
+    sendApiError(res, error);
   }
 });
 
@@ -72,7 +73,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     res.json({ message: 'Projection deleted successfully' });
   } catch (error) {
     console.error('Error deleting projection:', error);
-    res.status(500).json({ message: 'Error deleting projection' });
+    sendApiError(res, error);
   }
 });
 
