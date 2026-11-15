@@ -22,17 +22,17 @@ router.get('/call-average', async (req, res) => {
     const count = await CallAverageSetup.count();
     if (count === 0) {
       await CallAverageSetup.bulkCreate([
-        { designation: 'MR', min_field_working_days: 20, daily_calls: 11, doctor_calls: 8, chemist_calls: 3, monthly_calls: 220, quarterly_calls: 660, yearly_calls: 2640, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'TBM', min_field_working_days: 18, daily_calls: 10, doctor_calls: 7, chemist_calls: 3, monthly_calls: 180, quarterly_calls: 540, yearly_calls: 2160, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'ABM', min_field_working_days: 15, daily_calls: 8, doctor_calls: 5, chemist_calls: 3, monthly_calls: 120, quarterly_calls: 360, yearly_calls: 1440, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'RBM', min_field_working_days: 12, daily_calls: 6, doctor_calls: 4, chemist_calls: 2, monthly_calls: 72, quarterly_calls: 216, yearly_calls: 864, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'ZBM', min_field_working_days: 10, daily_calls: 5, doctor_calls: 3, chemist_calls: 2, monthly_calls: 50, quarterly_calls: 150, yearly_calls: 600, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true },
-        { designation: 'NSM', min_field_working_days: 8, daily_calls: 4, doctor_calls: 2, chemist_calls: 2, monthly_calls: 32, quarterly_calls: 96, yearly_calls: 384, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', is_active: true }
+        { designation: 'MR', min_field_working_days: 20, daily_calls: 11, doctor_calls: 8, chemist_calls: 3, monthly_calls: 220, quarterly_calls: 660, yearly_calls: 2640, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
+        { designation: 'TBM', min_field_working_days: 18, daily_calls: 10, doctor_calls: 7, chemist_calls: 3, monthly_calls: 180, quarterly_calls: 540, yearly_calls: 2160, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
+        { designation: 'ABM', min_field_working_days: 15, daily_calls: 8, doctor_calls: 5, chemist_calls: 3, monthly_calls: 120, quarterly_calls: 360, yearly_calls: 1440, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
+        { designation: 'RBM', min_field_working_days: 12, daily_calls: 6, doctor_calls: 4, chemist_calls: 2, monthly_calls: 72, quarterly_calls: 216, yearly_calls: 864, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
+        { designation: 'ZBM', min_field_working_days: 10, daily_calls: 5, doctor_calls: 3, chemist_calls: 2, monthly_calls: 50, quarterly_calls: 150, yearly_calls: 600, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true },
+        { designation: 'NSM', min_field_working_days: 8, daily_calls: 4, doctor_calls: 2, chemist_calls: 2, monthly_calls: 32, quarterly_calls: 96, yearly_calls: 384, warning_threshold: 90.00, alert_threshold: 70.00, effective_from: '2026-01-01', isActive: true }
       ]);
     }
     
     const setups = await CallAverageSetup.findAll({
-      where: { is_active: true },
+      where: { isActive: true },
       order: [['designation', 'ASC'], ['effective_from', 'DESC']]
     });
     res.json(setups);
@@ -143,7 +143,7 @@ router.delete('/call-average/:id', async (req, res) => {
     if (!setup) {
       return res.status(404).json({ message: 'Call average setup not found' });
     }
-    await setup.update({ is_active: false });
+    await setup.update({ isActive: false });
     res.json({ message: 'Call average setup deactivated' });
   } catch (error) {
     sendApiError(res, error, 500);
@@ -162,26 +162,26 @@ router.get('/coverage', async (req, res) => {
     if (count === 0) {
       // Doctor Coverage Setup
       await CoverageSetup.bulkCreate([
-        { entity_type: 'Doctor', designation: 'MR', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Doctor', designation: 'TBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Doctor', designation: 'ABM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Doctor', designation: 'RBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Doctor', designation: 'ZBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Doctor', designation: 'NSM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true }
+        { entity_type: 'Doctor', designation: 'MR', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Doctor', designation: 'TBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Doctor', designation: 'ABM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Doctor', designation: 'RBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Doctor', designation: 'ZBM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Doctor', designation: 'NSM', doctor_list_type: 'Core', monthly_coverage: 90.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 90.00, alert_level: 70.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true }
       ]);
       // Chemist Coverage Setup
       await CoverageSetup.bulkCreate([
-        { entity_type: 'Chemist', designation: 'MR', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Chemist', designation: 'TBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Chemist', designation: 'ABM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Chemist', designation: 'RBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Chemist', designation: 'ZBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true },
-        { entity_type: 'Chemist', designation: 'NSM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', is_active: true }
+        { entity_type: 'Chemist', designation: 'MR', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Chemist', designation: 'TBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Chemist', designation: 'ABM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Chemist', designation: 'RBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Chemist', designation: 'ZBM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true },
+        { entity_type: 'Chemist', designation: 'NSM', doctor_list_type: null, monthly_coverage: 100.00, quarterly_coverage: 100.00, yearly_coverage: 100.00, warning_level: 100.00, alert_level: 90.00, warning_color: 'warning', alert_color: 'danger', effective_from: '2026-01-01', isActive: true }
       ]);
     }
     
     const setups = await CoverageSetup.findAll({
-      where: { is_active: true },
+      where: { isActive: true },
       order: [['entity_type', 'ASC'], ['designation', 'ASC'], ['effective_from', 'DESC']]
     });
     res.json(setups);
@@ -238,7 +238,7 @@ router.delete('/coverage/:id', async (req, res) => {
     if (!setup) {
       return res.status(404).json({ message: 'Coverage setup not found' });
     }
-    await setup.update({ is_active: false });
+    await setup.update({ isActive: false });
     res.json({ message: 'Coverage setup deactivated' });
   } catch (error) {
     sendApiError(res, error, 500);
@@ -251,7 +251,7 @@ router.delete('/coverage/:id', async (req, res) => {
 router.get('/work-type', async (req, res) => {
   try {
     const setups = await WorkTypeSetup.findAll({
-      where: { is_active: true },
+      where: { isActive: true },
       order: [['designation', 'ASC'], ['effective_from', 'DESC']]
     });
     res.json(setups);
@@ -347,7 +347,7 @@ router.delete('/work-type/:id', async (req, res) => {
     if (!setup) {
       return res.status(404).json({ message: 'Work type setup not found' });
     }
-    await setup.update({ is_active: false });
+    await setup.update({ isActive: false });
     res.json({ message: 'Work type setup deactivated' });
   } catch (error) {
     sendApiError(res, error, 500);
@@ -360,7 +360,7 @@ router.delete('/work-type/:id', async (req, res) => {
 router.get('/leave-policy', async (req, res) => {
   try {
     const policies = await LeavePolicyMaster.findAll({
-      where: { is_active: true },
+      where: { isActive: true },
       order: [['leave_type', 'ASC']]
     });
     res.json(policies);
@@ -414,7 +414,7 @@ router.delete('/leave-policy/:id', async (req, res) => {
     if (!policy) {
       return res.status(404).json({ message: 'Leave policy not found' });
     }
-    await policy.update({ is_active: false });
+    await policy.update({ isActive: false });
     res.json({ message: 'Leave policy deactivated' });
   } catch (error) {
     sendApiError(res, error, 500);
@@ -450,7 +450,7 @@ router.post('/leave-balance/initialize', async (req, res) => {
     const { user_id, year, leavePolicies } = req.body;
     
     // Get all active leave policies
-    const policies = leavePolicies || await LeavePolicyMaster.findAll({ where: { is_active: true } });
+    const policies = leavePolicies || await LeavePolicyMaster.findAll({ where: { isActive: true } });
     
     const balances = [];
     for (const policy of policies) {
@@ -526,7 +526,7 @@ router.get('/compliance/:userId', async (req, res) => {
     const callAvgSetup = await CallAverageSetup.findOne({
       where: { 
         designation,
-        is_active: true,
+        isActive: true,
         effective_from: { [Op.lte]: new Date() },
         [Op.or]: [
           { effective_to: null },
@@ -539,14 +539,14 @@ router.get('/compliance/:userId', async (req, res) => {
       where: {
         designation,
         doctor_list_type: 'Core',
-        is_active: true
+        isActive: true
       }
     });
     
     const workTypeSetup = await WorkTypeSetup.findOne({
       where: {
         designation,
-        is_active: true
+        isActive: true
       }
     });
     
@@ -594,16 +594,16 @@ router.get('/compliance', async (req, res) => {
       const callAvgSetup = await CallAverageSetup.findOne({
         where: { 
           designation,
-          is_active: true
+          isActive: true
         }
       });
       
       const coverageSetup = await CoverageSetup.findOne({
-        where: { designation, doctor_list_type: 'Core', is_active: true }
+        where: { designation, doctor_list_type: 'Core', isActive: true }
       });
       
       const workTypeSetup = await WorkTypeSetup.findOne({
-        where: { designation, is_active: true }
+        where: { designation, isActive: true }
       });
       
       return {

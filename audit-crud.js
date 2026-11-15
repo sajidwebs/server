@@ -65,9 +65,9 @@ const fixtures = [
   fixture('Business', 'business', 'productName', () => ({ doctorId: refs.Doctor, productId: refs.Product, productName: tag, quantity: 1, amount: 80, month: 11, year: 2026, date: '2026-11-15' })),
   fixture('Projection', 'projections', 'productName', () => ({ productId: refs.Product, productName: tag, month: 11, year: 2026, projectedQuantity: 1, projectedAmount: 80 })),
   fixture('Notification', 'notifications', 'title', () => ({ userId: refs.User, title: tag, message: 'Disposable audit notification' }), { update: { isRead: true }, updateSuffix: '/read', listQuery: () => `?userId=${refs.User}`, verifyField: 'isRead', verifyValue: true }),
-  fixture('MarketingCampaign', 'marketing/campaigns', 'campaign_name', () => ({ campaign_code: tag, campaign_name: tag, start_date: '2026-11-01', end_date: '2026-11-30' })),
+  fixture('MarketingCampaign', 'marketing/campaigns', 'campaign_name', () => ({ campaign_code: tag, campaign_name: tag, start_date: '2026-11-01', end_date: '2026-11-30' }), { deletedStatus: 'cancelled' }),
   fixture('MarketingBrandStrategy', 'marketing/strategies', 'activity_name', () => ({ financial_year: '2026-2027', brand_name: tag, activity_name: tag })),
-  fixture('MarketingRCPA', 'marketing/rcpa', 'rcpa_name', () => ({ rcpa_code: tag, rcpa_name: tag }))
+  fixture('MarketingRCPA', 'marketing/rcpa', 'rcpa_name', () => ({ rcpa_code: tag, rcpa_name: tag }), { deletedStatus: 'closed' })
 ];
 
 async function main() {
@@ -87,6 +87,7 @@ async function main() {
       assert.ok(record?.id, `Missing created ID: ${item.path}`);
       id = record.id;
       refs[item.model] = id;
+      if (item.model === 'User') refs.testPassword = payload.password;
       cleanup.push({ ...item, id });
       const list = await request(item.path + (item.listQuery?.() || ''));
       const records = Array.isArray(list) ? list : Object.values(list).find(Array.isArray);
@@ -104,13 +105,34 @@ async function main() {
       console.error('FAIL', item.path, error.message);
     }
   }
+  // Negative cases must return actionable client errors without corrupting records.
+  await request('territories', 'POST', {}, [400]);
+  await request('territories', 'POST', { name: tag, code: tag, region: 'East', state: 'Odisha', district: 'Khordha' }, [400, 409]);
+  await request('territories', 'POST', { name: tag, code: `${tag}-FK`, region: 'East', state: 'Odisha', district: 'Khordha', hq_id: 2147483647 }, [409]);
+  await request('doctors/2147483647', 'GET', undefined, [404]);
+  await request('admin/reports?type=projection&startDate=invalid&endDate=2026-11-30', 'GET', undefined, [400]);
+  await request(`admin/users/${login.user.id}`, 'DELETE', undefined, [409]);
+  const newPassword = crypto.randomBytes(18).toString('hex');
+  await request(`admin/users/${refs.User}`, 'PUT', { password: newPassword });
+  const normalUser = await request('auth/login', 'POST', { email: `${tag}@example.invalid`, password: newPassword });
+  const adminToken = token;
+  token = normalUser.token;
+  await request(`admin/users/${refs.User}`, 'PUT', { firstName: 'Denied' }, [403]);
+  await request(`users/${refs.User}`, 'PUT', { role: 'admin' }, [403]);
+  await request('system-setup/call-average', 'POST', { designation: 'Denied' }, [403]);
+  token = adminToken;
+  await request(`admin/users/${refs.User}`, 'PUT', { isActive: false });
+  token = normalUser.token;
+  await request('auth/profile', 'GET', undefined, [401]);
+  token = adminToken;
+  console.log('PASS validation, duplicate, foreign key, missing record, report dates, self-delete, password update, permissions and disabled-token checks');
   // Reverse order respects dependencies. Only records created by this run are touched.
   for (const item of [...cleanup].reverse()) {
     try {
       if (!item.noDelete) {
         await request(`${item.path}/${item.id}`, 'DELETE');
         const record = await M[item.model].findByPk(item.id);
-        assert.ok(!record || record.isActive === false || record.status === 'inactive', `Delete did not remove/deactivate ${item.path}`);
+        assert.ok(!record || record.isActive === false || record.status === (item.deletedStatus || 'inactive'), `Delete did not remove/deactivate ${item.path}`);
         console.log('PASS delete', item.path);
       }
     } catch (error) {

@@ -129,7 +129,7 @@ async function main() {
         const patch = await ensure('Patch', { patch_name: `${area} Route`, hq_id: hq.id }, { state }, legacyPatch ? { id: legacyPatch.id } : null);
         await ensure('PatchHeadquarter', { patch_id: patch.id, hq_id: hq.id });
         const emailKey = `${firstName}.${lastName}.${routeCode}`.toLowerCase();
-        const doctor = await ensure('Doctor', { email: `${emailKey}@example.invalid` }, {
+        const doctor = await ensure('Doctor', { email: `${emailKey}@pamsforce.com` }, {
           firstName, lastName, hq_id: hq.id, territory_id: territory.id, patch_id: patch.id, state,
           class_id: classes[index % 3].id, category_id: categories[index % 3].id,
           specialty_id: specialties[index % 2].id, specialty: specialties[index % 2].specialty_name,
@@ -138,7 +138,7 @@ async function main() {
           location: area, visit_time: '10:00-13:00', visit_day: index % 2 ? 'Thursday' : 'Monday',
           patients_per_week: 60, approval_status: 'approved', current_approval_level: 0
         }, oldSuffix ? { registration_number: `SAMPLE-DR-${oldSuffix}` } : null);
-        await ensure('Chemist', { email: `pharmacy.${routeCode.toLowerCase()}@example.invalid` }, {
+        await ensure('Chemist', { email: `pharmacy.${routeCode.toLowerCase()}@pamsforce.com` }, {
           name: `${area} Medical Hall`, location: area, owner_name: `${firstName} ${lastName}`,
           address: `${area}, ${city}, ${state}`, hq_id: hq.id, territory_id: territory.id,
           patch_id: patch.id, state, dl_number: null, createdBy: admin.id
@@ -154,7 +154,7 @@ async function main() {
       if (oldKey) {
         const user = await M.User.findOne({ where: { email: `sample.rep.${oldKey.toLowerCase()}@example.invalid` }, transaction });
         if (user) {
-          await user.update({ email: `${user.firstName}.${user.lastName}@example.invalid`.toLowerCase(),
+          await user.update({ email: `${user.firstName}.${user.lastName}@pamsforce.com`.toLowerCase(),
             username: `${user.firstName}.${user.lastName}`.toLowerCase(), employeeId: `MR-${code}`,
             hq_id: hq.id, territory_id: territory.id }, { transaction });
           changes.renamed.User = (changes.renamed.User || 0) + 1;
