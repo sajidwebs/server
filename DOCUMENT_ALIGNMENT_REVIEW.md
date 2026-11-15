@@ -29,6 +29,28 @@ The existing project/three-layer guide and portal workflow were also compared;
 original department documents and the user's current company catalogue direction
 take precedence over generated examples.
 
+## Minimal demonstration data policy (supersedes earlier regional counts)
+
+The generated regional seed was reduced at the user's request to 3 HQs, 3
+territories and 3 patches: Bhubaneswar / Saheed Nagar, Kolkata Central /
+Bhowanipore and Delhi Central / Connaught Place. Three demonstration customer
+sets remain. These are demonstration data, not a company directory. Expansion
+of the old regional seed is disabled. Company data must be supplied by the company.
+
+Four staff accounts demonstrate NSM (Sourav Mukherjee), RBM (Rohan Mehra), ABM
+(Ranjit Malik) and MR (Prakash Mohanty), reporting in that order, plus the existing
+administrator. These are configurable demonstration assignments, not confirmed
+company designations. Separate random passwords were saved only under ignored
+local backups. Administrator credentials were preserved. Designation selection
+now synchronizes the access role, and user write controls are administrator-only.
+
+Cleanup matches historical generated identities and an edit cutoff, backs up
+all affected masters, and checks incoming database foreign keys before deletion.
+Isolated tests passed for removal, preservation, hierarchy, all four logins and
+rejection of administrator-only user writes. Live cleanup removed 13 patches,
+13 territories, 5 HQs, 13 doctors, 13 chemists, 5 stockists, 5 hospitals, 13 SVL
+rows, 13 patch/HQ mappings and 3 unused generated staff accounts.
+
 ## Headquarters, divisions and navigation follow-up
 
 All 13 unique department documents listed below were reviewed, including all workbook sheets and the scanned PDF. The HQ specification defines Zone ? State/UT ? Region ? HQ ? Patch. The portal now exposes Headquarters, Territories / Routes, a geographic hierarchy view, and Patch / HQ Mapping under Territory & HQ. Existing 8 headquarters, 16 territories and 16 patches are retained; the documents do not supply a further approved territory directory.

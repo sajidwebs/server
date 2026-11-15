@@ -98,7 +98,8 @@ router.post('/login', validateUserLogin, async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        employeeType: user.employeeType
       }
     };
     res.json(responseData);

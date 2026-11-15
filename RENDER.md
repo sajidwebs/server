@@ -88,3 +88,6 @@ See [document reconciliation](./DOCUMENT_ALIGNMENT_REVIEW.md) for sources and re
 ### Department organization masters
 
 Run `npm run organization:sync -- --apply` after reviewing the department source mapping. This creates the requested inactive Ranjit Malik account, fills missing geography from assigned headquarters and restores missing primary patch/HQ mappings. It does not invent territory records. `npm run catalog:sync -- --apply` uses Task force and General from the Product Master example entry table, superseding the earlier Pamsforce division. Existing manual product division assignments are preserved. See [document review](./DOCUMENT_ALIGNMENT_REVIEW.md) for the evidence and limitations.
+
+
+Regional demonstration expansion is disabled. `node minimize-demo-data.js` previews cleanup; `node minimize-demo-data.js --apply` applies guarded reduction. Login credentials are written only under ignored `backups/`. The four retained staff designations are demonstrations pending the company roster.
