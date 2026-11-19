@@ -142,6 +142,7 @@ app.use('/api/system-setup', require('./routes/systemSetup.routes'));
 
 // Marketing Campaign, Strategy, ROI, and RCPA Routes
 app.use('/api/marketing', require('./routes/marketing.routes'));
+app.use('/api/hrms', require('./routes/hrms.routes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

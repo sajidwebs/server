@@ -957,6 +957,7 @@ MarketingRCPAEntry.belongsTo(Chemist, {
 // ==================== EXPORT MODELS ====================
 
 module.exports = {
+  ...require('./HRMS'),
   User,
   Doctor,
   Chemist,

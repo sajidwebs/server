@@ -16,7 +16,8 @@
     "db:recover": "node recover-local.js",
     "db:init-local": "node init-local-masters.js",
     "test:local": "node smoke-local.js",
-    "test": "node test-initialize.js"
+    "test": "node test-initialize.js",
+    "test:hrms": "node test-hrms.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
